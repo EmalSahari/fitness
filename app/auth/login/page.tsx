@@ -1,18 +1,28 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import AuthBackground from '@/components/AuthBackground';
 import Sparkles from '@/components/Sparkles';
 
 export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const resetSuccess = searchParams.get('reset') === 'success';
   const supabase = createClient();
 
   async function handleSubmit(e: React.FormEvent) {
@@ -56,6 +66,11 @@ export default function LoginPage() {
           <p className="text-slate-400 text-sm mb-6">Sign in to your FitTrack account</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {resetSuccess && (
+              <div className="bg-green-500/10 border border-green-500/30 text-green-400 text-sm px-3 py-2.5 rounded-lg">
+                Password updated — sign in with your new password.
+              </div>
+            )}
             {error && (
               <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm px-3 py-2.5 rounded-lg">
                 {error}
@@ -78,9 +93,14 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">
-                Password
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-medium text-slate-400">
+                  Password
+                </label>
+                <Link href="/auth/forgot-password" className="text-xs text-blue-400 hover:text-blue-300 transition-colors">
+                  Forgot password?
+                </Link>
+              </div>
               <input
                 type="password"
                 autoComplete="current-password"
