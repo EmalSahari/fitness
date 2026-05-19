@@ -12,6 +12,7 @@ export interface Profile {
   language: Language;
   plan: Plan;
   calorie_goal: number;
+  protein_goal: number;
   onboarded: boolean;
   created_at: string;
   updated_at: string;

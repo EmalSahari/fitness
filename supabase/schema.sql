@@ -7,7 +7,8 @@ CREATE TABLE IF NOT EXISTS profiles (
   name        TEXT NOT NULL DEFAULT '',
   language    TEXT NOT NULL DEFAULT 'en' CHECK (language IN ('en', 'da')),
   plan        TEXT NOT NULL DEFAULT 'free' CHECK (plan IN ('free', 'pro')),
-  calorie_goal INTEGER NOT NULL DEFAULT 2000,
+  calorie_goal  INTEGER NOT NULL DEFAULT 2000,
+  protein_goal  INTEGER NOT NULL DEFAULT 150,
   onboarded   BOOLEAN NOT NULL DEFAULT false,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()

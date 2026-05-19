@@ -52,3 +52,14 @@ export function calorieGoalFromGoal(tdee: number, goal: FitnessGoal): number {
   };
   return Math.max(1200, tdee + adjustments[goal]);
 }
+
+// g/kg multipliers per goal: lose_fat=1.6, build_muscle=2.0, maintain=1.4, performance=1.8
+export function proteinGoalFromWeight(weightKg: number, goal: FitnessGoal): number {
+  const multipliers: Record<FitnessGoal, number> = {
+    lose_fat: 1.6,
+    build_muscle: 2.0,
+    maintain: 1.4,
+    performance: 1.8,
+  };
+  return Math.round(weightKg * multipliers[goal]);
+}

@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/auth-context';
-import { calculateTDEE, calorieGoalFromGoal } from '@/lib/utils';
+import { calculateTDEE, calorieGoalFromGoal, proteinGoalFromWeight } from '@/lib/utils';
 import type { Sex, ActivityLevel, FitnessGoal } from '@/lib/types';
 
 type Step = 1 | 2 | 3;
@@ -74,10 +74,11 @@ export default function OnboardingPage() {
     setError('');
 
     const calorieGoal = suggestedGoal ?? 2000;
+    const proteinGoal = weightKg ? proteinGoalFromWeight(parseFloat(weightKg), goal) : 150;
 
     const { error: profileErr } = await supabase
       .from('profiles')
-      .update({ name: name.trim(), calorie_goal: calorieGoal, onboarded: true })
+      .update({ name: name.trim(), calorie_goal: calorieGoal, protein_goal: proteinGoal, onboarded: true })
       .eq('id', user.id);
 
     if (profileErr) { setError(profileErr.message); setLoading(false); return; }

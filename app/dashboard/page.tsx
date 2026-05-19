@@ -157,6 +157,7 @@ export default function DashboardPage() {
   const todayWorkouts = workoutEntries.filter(e => e.date === today);
   const weeklyWorkoutCount = workoutEntries.length;
   const goal = profile?.calorie_goal ?? 2000;
+  const proteinGoal = profile?.protein_goal ?? 150;
 
   const totalCalIn = todayFood.reduce((s, e) => s + e.calories, 0);
   const totalCalBurned = todayWorkouts.reduce((s, e) => s + e.calories_burned, 0);
@@ -209,12 +210,33 @@ export default function DashboardPage() {
         <CalorieRing consumed={totalCalIn} goal={goal} burned={totalCalBurned} t={t} />
         </div>
 
-      {/* Macro + workout stats */}
+      {/* Protein goal card + other stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatCard value={Math.round(totalProtein)} unit="g" label={t('dash_protein')}     color="text-blue-400"   bg="bg-blue-500/10"   glowColor="#3b82f6" />
+        {/* Protein — spans 2 cols on mobile to give it room */}
+        <div className="col-span-2 sm:col-span-2 bg-slate-900 rounded-xl p-4 space-y-2" style={{ border: '1px solid rgba(59,130,246,0.2)' }}>
+          <div className="flex items-end justify-between">
+            <span className="text-xs font-medium text-slate-400">{t('dash_protein')}</span>
+            <span className="text-xs text-slate-500">{Math.round(totalProtein)}g / {proteinGoal}g</span>
+          </div>
+          <div className="text-2xl font-bold text-blue-400">{Math.round(totalProtein)}<span className="text-sm font-normal text-slate-500 ml-1">g</span></div>
+          <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-blue-500 rounded-full transition-all duration-700"
+              style={{ width: `${Math.min((totalProtein / proteinGoal) * 100, 100)}%` }}
+            />
+          </div>
+          <p className="text-xs text-slate-500">
+            {totalProtein >= proteinGoal
+              ? '✓ Goal reached'
+              : `${Math.round(proteinGoal - totalProtein)}g to go`}
+          </p>
+        </div>
         <StatCard value={Math.round(totalCarbs)}   unit="g" label={t('dash_carbs')}       color="text-amber-400"  bg="bg-amber-500/10"  glowColor="#f59e0b" />
         <StatCard value={Math.round(totalFat)}     unit="g" label={t('dash_fat')}         color="text-pink-400"   bg="bg-pink-500/10"   glowColor="#ec4899" />
-        <StatCard value={weeklyWorkoutCount}        unit=""  label={t('dash_workouts_7d')} color="text-green-400"  bg="bg-green-500/10"  glowColor="#22c55e" />
+      </div>
+      {/* Workout stat */}
+      <div className="grid grid-cols-1">
+        <StatCard value={weeklyWorkoutCount} unit="" label={t('dash_workouts_7d')} color="text-green-400" bg="bg-green-500/10" glowColor="#22c55e" />
       </div>
 
       {/* Macros bar */}
