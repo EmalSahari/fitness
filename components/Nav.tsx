@@ -71,9 +71,13 @@ export default function Nav() {
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex fixed left-0 top-0 h-screen w-60 bg-slate-900 border-r border-slate-800 flex-col z-50">
+      <aside className="hidden md:flex fixed left-0 top-0 h-screen w-60 border-r border-slate-800/80 flex-col z-50 overflow-hidden"
+        style={{ background: 'linear-gradient(180deg, #0d1117 0%, #090d14 60%, #080c12 100%)' }}>
+        {/* Subtle top glow */}
+        <div className="pointer-events-none absolute top-0 left-0 right-0 h-40 opacity-30"
+          style={{ background: 'radial-gradient(ellipse at 50% -20%, rgba(59,130,246,0.25) 0%, transparent 70%)' }} />
         {/* Logo */}
-        <div className="px-5 py-4 border-b border-slate-800">
+        <div className="relative px-5 py-4 border-b border-slate-800/80">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0">
               <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -90,12 +94,27 @@ export default function Nav() {
             const active = pathname === href || pathname.startsWith(href + '/');
             return (
               <Link key={href} href={href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                   active
-                    ? 'bg-blue-600/15 text-blue-400 border border-blue-500/20'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800 border border-transparent'
-                }`}>
-                {icon}
+                    ? 'text-blue-400 border border-blue-500/25'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent'
+                }`}
+                style={active ? {
+                  background: 'linear-gradient(90deg, rgba(59,130,246,0.18) 0%, rgba(59,130,246,0.06) 100%)',
+                  boxShadow: '0 0 16px rgba(59,130,246,0.15), inset 0 0 12px rgba(59,130,246,0.05)',
+                } : undefined}
+              >
+                {/* Tubelight indicator bar */}
+                {active && (
+                  <span
+                    className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full bg-blue-400"
+                    style={{ boxShadow: '0 0 8px 2px rgba(59,130,246,0.7), 0 0 20px 4px rgba(59,130,246,0.3)' }}
+                  />
+                )}
+                {/* Icon with glow when active */}
+                <span style={active ? { filter: 'drop-shadow(0 0 6px rgba(59,130,246,0.8))' } : undefined}>
+                  {icon}
+                </span>
                 {t(labelKey)}
               </Link>
             );
