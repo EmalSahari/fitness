@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import AuthBackground from '@/components/AuthBackground';
 
 export default function CheckEmailPage() {
   const [resent, setResent] = useState(false);
@@ -17,7 +18,7 @@ export default function CheckEmailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+    <AuthBackground>
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="flex items-center gap-2.5 justify-center mb-8">
@@ -67,6 +68,6 @@ export default function CheckEmailPage() {
           </Link>
         </div>
       </div>
-    </div>
+    </AuthBackground>
   );
 }

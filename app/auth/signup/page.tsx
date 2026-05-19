@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import AuthBackground from '@/components/AuthBackground';
 
 export default function SignupPage() {
   const [email, setEmail] = useState('');
@@ -52,7 +53,7 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+    <AuthBackground>
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="flex items-center gap-2.5 justify-center mb-8">
@@ -128,6 +129,6 @@ export default function SignupPage() {
           By creating an account you agree that we may use your data to improve the service.
         </p>
       </div>
-    </div>
+    </AuthBackground>
   );
 }
