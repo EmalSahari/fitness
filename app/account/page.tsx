@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/auth-context';
 import { calculateTDEE, calorieGoalFromGoal, proteinGoalFromWeight } from '@/lib/utils';
-import type { Sex, ActivityLevel, FitnessGoal, UserStats } from '@/lib/types';
+import type { Sex, ActivityLevel, FitnessGoal, UserStats, Language } from '@/lib/types';
 import type { TranslationKey } from '@/lib/i18n/en';
 
 const ACTIVITY_OPTIONS: { value: ActivityLevel; label: TranslationKey; desc: TranslationKey }[] = [
@@ -24,7 +24,7 @@ const GOAL_OPTIONS: { value: FitnessGoal; emoji: string; label: TranslationKey; 
 ];
 
 export default function AccountPage() {
-  const { user, profile, t, refreshProfile } = useAuth();
+  const { user, profile, t, refreshProfile, language, setLanguage, signOut } = useAuth();
   const router = useRouter();
   const supabase = createClient();
 
@@ -267,6 +267,26 @@ export default function AccountPage() {
           </>
         ) : t('acc_save')}
       </button>
+
+      {/* Language + sign out — shown on mobile where sidebar isn't visible */}
+      <div className="md:hidden bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+        <button
+          onClick={() => setLanguage((language === 'en' ? 'da' : 'en') as Language)}
+          className="w-full flex items-center gap-3 px-4 py-3.5 text-sm text-slate-300 hover:bg-slate-800 transition-colors border-b border-slate-800"
+        >
+          <span className="text-base">{language === 'en' ? '🇩🇰' : '🇬🇧'}</span>
+          <span>{language === 'en' ? 'Switch to Danish' : 'Skift til engelsk'}</span>
+        </button>
+        <button
+          onClick={signOut}
+          className="w-full flex items-center gap-3 px-4 py-3.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+          <span>{t('nav_signout')}</span>
+        </button>
+      </div>
     </div>
   );
 }
