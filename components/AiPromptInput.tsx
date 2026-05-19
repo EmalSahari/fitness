@@ -10,6 +10,7 @@ interface AiPromptInputProps {
   placeholder?: string;
   label?: string;
   sublabel?: string;
+  hint?: string;
 }
 
 export default function AiPromptInput({
@@ -17,6 +18,7 @@ export default function AiPromptInput({
   placeholder = 'Describe what you ate or did…',
   label = 'Quick log with AI',
   sublabel = 'describe in any language',
+  hint = 'Press Enter to estimate · Shift+Enter for new line',
 }: AiPromptInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -58,7 +60,7 @@ export default function AiPromptInput({
 
         {/* Bottom bar */}
         <div className="absolute bottom-2 left-3 right-2 flex items-center justify-between pointer-events-none">
-          <span className="text-xs text-slate-600">Press Enter to estimate · Shift+Enter for new line</span>
+          <span className="text-xs text-slate-600">{hint}</span>
           <button
             type="button"
             onClick={onSubmit}

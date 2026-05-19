@@ -132,8 +132,10 @@ export default function FoodPage() {
           onChange={setAiInput}
           onSubmit={handleAiParse}
           isLoading={aiParsing}
-          placeholder="e.g. rugbrød with chicken pålæg and butter, or 3 taquitos from 7-eleven"
-          sublabel="describe what you ate in any language"
+          label={t('ai_label_food')}
+          sublabel={t('ai_sublabel_food')}
+          placeholder={t('ai_placeholder_food')}
+          hint={t('ai_hint')}
         />
         {aiError && <p className="text-red-400 text-xs mt-2">{aiError}</p>}
       </div>

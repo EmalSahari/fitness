@@ -7,7 +7,6 @@ import { useAuth } from '@/lib/auth-context';
 import { createClient } from '@/lib/supabase/client';
 import { getTodayDate, getLast7Days, clamp } from '@/lib/utils';
 import type { FoodEntry, WorkoutEntry, WeightEntry } from '@/lib/types';
-import BorderBeam from '@/components/BorderBeam';
 
 const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
 
@@ -37,7 +36,7 @@ function useCountUp(target: number, duration = 800) {
 }
 
 // Circular progress ring
-function CalorieRing({ consumed, goal, burned }: { consumed: number; goal: number; burned: number }) {
+function CalorieRing({ consumed, goal, burned, t }: { consumed: number; goal: number; burned: number; t: (k: string) => string }) {
   const size = 200;
   const strokeW = 14;
   const r = (size - strokeW) / 2;
@@ -68,9 +67,9 @@ function CalorieRing({ consumed, goal, burned }: { consumed: number; goal: numbe
         {/* Center text */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span className="text-3xl font-bold text-white tabular-nums">{animCount.toLocaleString()}</span>
-          <span className="text-xs text-slate-400 mt-0.5">kcal eaten</span>
+          <span className="text-xs text-slate-400 mt-0.5">{t('dash_kcal_eaten')}</span>
           <span className="text-xs font-medium mt-1" style={{ color }}>
-            {over ? `${(consumed - goal).toLocaleString()} over` : `${remaining.toLocaleString()} left`}
+            {over ? `${(consumed - goal).toLocaleString()} ${t('dash_over_ring')}` : `${remaining.toLocaleString()} ${t('dash_left')}`}
           </span>
         </div>
       </div>
@@ -79,12 +78,12 @@ function CalorieRing({ consumed, goal, burned }: { consumed: number; goal: numbe
       <div className="flex items-center gap-6 text-sm">
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-slate-600 inline-block" />
-          <span className="text-slate-400">Goal</span>
+          <span className="text-slate-400">{t('dash_goal_ring')}</span>
           <span className="font-semibold text-white">{goal.toLocaleString()}</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-green-500 inline-block" />
-          <span className="text-slate-400">Burned</span>
+          <span className="text-slate-400">{t('dash_burned_ring')}</span>
           <span className="font-semibold text-green-400">{burned.toLocaleString()}</span>
         </div>
       </div>
@@ -194,8 +193,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Calorie ring card */}
-      <div className="relative bg-slate-900 rounded-xl p-5 overflow-hidden">
-        <BorderBeam color="rgba(59,130,246,0.8)" duration={8} />
+      <div className="relative bg-slate-900 rounded-xl p-5 overflow-hidden" style={{ border: '1px solid rgba(59,130,246,0.2)', boxShadow: '0 0 24px rgba(59,130,246,0.06)' }}>
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full opacity-10 blur-3xl"
             style={{ background: 'radial-gradient(circle, #3b82f6 0%, transparent 70%)' }} />
@@ -204,10 +202,10 @@ export default function DashboardPage() {
           <h2 className="font-semibold text-white">{t('dash_calories_today')}</h2>
           <div className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full bg-blue-500" />
-            <span className="text-xs text-slate-400">Net: <span className={netCal > goal ? 'text-red-400' : 'text-white'}>{netCal.toLocaleString()} kcal</span></span>
+            <span className="text-xs text-slate-400">{t('dash_net_label')} <span className={netCal > goal ? 'text-red-400' : 'text-white'}>{netCal.toLocaleString()} kcal</span></span>
           </div>
         </div>
-        <CalorieRing consumed={totalCalIn} goal={goal} burned={totalCalBurned} />
+        <CalorieRing consumed={totalCalIn} goal={goal} burned={totalCalBurned} t={t} />
         </div>
 
       {/* Macro + workout stats */}
@@ -220,8 +218,7 @@ export default function DashboardPage() {
 
       {/* Macros bar */}
       {macroTotal > 0 && (
-        <div className="relative bg-slate-900 rounded-xl p-5 space-y-3 overflow-hidden">
-          <BorderBeam color="rgba(99,102,241,0.7)" duration={10} delay={3} />
+        <div className="relative bg-slate-900 rounded-xl p-5 space-y-3" style={{ border: '1px solid rgba(99,102,241,0.18)', boxShadow: '0 0 20px rgba(99,102,241,0.05)' }}>
           <h2 className="font-semibold text-white">{t('dash_macros')}</h2>
           <div className="flex h-2.5 rounded-full overflow-hidden gap-px">
             {totalProtein > 0 && <div className="bg-blue-500 h-full transition-all duration-700" style={{ width: `${(totalProtein / macroTotal) * 100}%` }} />}
@@ -244,8 +241,7 @@ export default function DashboardPage() {
       )}
 
       {/* Today's food */}
-      <div className="relative bg-slate-900 rounded-xl overflow-hidden">
-        <BorderBeam color="rgba(245,158,11,0.6)" duration={12} delay={2} />
+      <div className="bg-slate-900 rounded-xl overflow-hidden" style={{ border: '1px solid rgba(245,158,11,0.15)' }}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
           <h2 className="font-semibold text-white">{t('dash_todays_food')}</h2>
           <Link href="/food" className="text-sm text-blue-400 hover:text-blue-300 transition-colors">{t('dash_add_meal')}</Link>
@@ -280,8 +276,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Today's workouts */}
-      <div className="relative bg-slate-900 rounded-xl overflow-hidden">
-        <BorderBeam color="rgba(34,197,94,0.6)" duration={11} delay={5} />
+      <div className="bg-slate-900 rounded-xl overflow-hidden" style={{ border: '1px solid rgba(34,197,94,0.15)' }}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
           <h2 className="font-semibold text-white">{t('dash_todays_workouts')}</h2>
           <Link href="/workouts" className="text-sm text-blue-400 hover:text-blue-300 transition-colors">{t('dash_log_workout_link')}</Link>

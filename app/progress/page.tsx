@@ -5,7 +5,6 @@ import { useAuth } from '@/lib/auth-context';
 import { createClient } from '@/lib/supabase/client';
 import { getTodayDate, getLast7Days } from '@/lib/utils';
 import type { WeightEntry, FoodEntry, WorkoutEntry } from '@/lib/types';
-import BorderBeam from '@/components/BorderBeam';
 
 type Insight = { type: 'positive' | 'warning' | 'suggestion'; title: string; text: string };
 
@@ -148,7 +147,7 @@ function WorkoutBars({ workoutEntries, last7 }: { workoutEntries: WorkoutEntry[]
 }
 
 export default function ProgressPage() {
-  const { user, profile, loading: authLoading } = useAuth();
+  const { user, profile, loading: authLoading, t } = useAuth();
   const supabase = createClient();
   const today = getTodayDate();
   const last7 = getLast7Days();
@@ -243,15 +242,15 @@ export default function ProgressPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Progress</h1>
-          <p className="text-slate-400 text-sm mt-0.5">Last 7 days · {daysLogged} days logged</p>
+          <h1 className="text-2xl font-bold text-white">{t('prog_title')}</h1>
+          <p className="text-slate-400 text-sm mt-0.5">{t('prog_last_7')} · {daysLogged} {t('prog_subtitle_days')}</p>
         </div>
         <button onClick={() => setShowWeightForm(!showWeightForm)}
           className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-3 py-2 rounded-lg transition-colors">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
           </svg>
-          Log weight
+          {t('prog_log_weight')}
         </button>
       </div>
 
@@ -265,21 +264,20 @@ export default function ProgressPage() {
           <span className="text-slate-400 text-sm">kg</span>
           <button onClick={logWeight} disabled={saving}
             className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors">
-            {saving ? '…' : 'Save'}
+            {saving ? '…' : t('prog_save')}
           </button>
           <button onClick={() => setShowWeightForm(false)} className="text-slate-500 hover:text-slate-300 text-sm px-2">✕</button>
         </div>
       )}
 
       {/* Weight chart card */}
-      <div className="relative bg-slate-900 rounded-xl p-5 overflow-hidden">
-        <BorderBeam color="rgba(59,130,246,0.7)" duration={9} />
+      <div className="bg-slate-900 rounded-xl p-5" style={{ border: '1px solid rgba(59,130,246,0.2)', boxShadow: '0 0 24px rgba(59,130,246,0.05)' }}>
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h2 className="font-semibold text-white">Weight</h2>
+            <h2 className="font-semibold text-white">{t('prog_weight_card')}</h2>
             {latest && (
               <p className="text-xs text-slate-500 mt-0.5">
-                Last logged {new Date(latest.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                {t('prog_last_logged')} {new Date(latest.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
               </p>
             )}
           </div>
@@ -301,39 +299,36 @@ export default function ProgressPage() {
           <WeightChart entries={weightEntries} />
         ) : (
           <p className="text-slate-500 text-sm py-6 text-center">
-            {weightEntries.length === 0
-              ? 'No weight logged yet. Hit the button above to start tracking.'
-              : 'Log at least 2 entries to see your trend.'}
+            {weightEntries.length === 0 ? t('prog_no_weight') : t('prog_need_two')}
           </p>
         )}
       </div>
 
       {/* Calories this week chart */}
-      <div className="relative bg-slate-900 rounded-xl p-5 overflow-hidden">
-        <BorderBeam color="rgba(34,197,94,0.6)" duration={11} delay={4} />
+      <div className="bg-slate-900 rounded-xl p-5" style={{ border: '1px solid rgba(34,197,94,0.15)', boxShadow: '0 0 20px rgba(34,197,94,0.04)' }}>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-semibold text-white">Calories this week</h2>
+          <h2 className="font-semibold text-white">{t('prog_calories_week')}</h2>
           <div className="flex items-center gap-3 text-xs text-slate-500">
-            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-green-500/80 inline-block" />Under goal</span>
-            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-red-500/80 inline-block" />Over goal</span>
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-green-500/80 inline-block" />{t('prog_under_goal')}</span>
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-red-500/80 inline-block" />{t('prog_over_goal')}</span>
           </div>
         </div>
         {daysLogged > 0 ? (
           <WeeklyCaloriesChart dayCalMap={dayCalMap} goal={goal} last7={last7} />
         ) : (
-          <p className="text-slate-500 text-sm py-6 text-center">No food logged this week yet.</p>
+          <p className="text-slate-500 text-sm py-6 text-center">{t('prog_no_food_week')}</p>
         )}
         {avgCal > 0 && (
           <div className="flex gap-4 mt-3 pt-3 border-t border-slate-800 text-sm">
             <div>
-              <span className="text-slate-500">Avg / day </span>
+              <span className="text-slate-500">{t('prog_avg_day')} </span>
               <span className="font-semibold text-white">{avgCal.toLocaleString()}</span>
               <span className="text-slate-500"> kcal</span>
             </div>
             <div>
-              <span className="text-slate-500">Goal </span>
+              <span className="text-slate-500">{t('prog_goal_label')} </span>
               <span className={`font-semibold ${avgCal > goal ? 'text-red-400' : 'text-green-400'}`}>
-                {avgCal > goal ? `+${(avgCal - goal).toLocaleString()} over` : `${(goal - avgCal).toLocaleString()} under`}
+                {avgCal > goal ? `+${(avgCal - goal).toLocaleString()} ${t('prog_over')}` : `${(goal - avgCal).toLocaleString()} ${t('prog_under')}`}
               </span>
             </div>
           </div>
@@ -341,34 +336,33 @@ export default function ProgressPage() {
       </div>
 
       {/* Workout activity */}
-      <div className="relative bg-slate-900 rounded-xl p-5 overflow-hidden">
-        <BorderBeam color="rgba(139,92,246,0.7)" duration={13} delay={7} />
+      <div className="bg-slate-900 rounded-xl p-5" style={{ border: '1px solid rgba(139,92,246,0.18)', boxShadow: '0 0 20px rgba(139,92,246,0.04)' }}>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-semibold text-white">Workout activity</h2>
-          <span className="text-xs text-slate-500">{workoutEntries.length} sessions · {totalBurned.toLocaleString()} kcal burned</span>
+          <h2 className="font-semibold text-white">{t('prog_workout_activity')}</h2>
+          <span className="text-xs text-slate-500">{workoutEntries.length} {t('prog_sessions')} · {totalBurned.toLocaleString()} {t('prog_kcal_burned')}</span>
         </div>
         <WorkoutBars workoutEntries={workoutEntries} last7={last7} />
-        <p className="text-xs text-slate-600 mt-2">Bar height = workout duration (minutes)</p>
+        <p className="text-xs text-slate-600 mt-2">{t('prog_bar_hint')}</p>
       </div>
 
       {/* Weekly stats */}
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-          <p className="text-xs text-slate-500 mb-1">Avg calories / day</p>
+          <p className="text-xs text-slate-500 mb-1">{t('prog_avg_cal')}</p>
           <p className="text-2xl font-bold text-white">{avgCal > 0 ? avgCal.toLocaleString() : '—'}</p>
           {avgCal > 0 && (
             <p className={`text-xs mt-1 ${avgCal > goal ? 'text-red-400' : 'text-green-400'}`}>
-              {avgCal > goal ? `+${avgCal - goal} over goal` : `${goal - avgCal} under goal`}
+              {avgCal > goal ? `+${avgCal - goal} ${t('prog_over_goal')}` : `${goal - avgCal} ${t('prog_under_goal')}`}
             </p>
           )}
         </div>
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-          <p className="text-xs text-slate-500 mb-1">Workouts this week</p>
+          <p className="text-xs text-slate-500 mb-1">{t('prog_workouts_week')}</p>
           <p className="text-2xl font-bold text-white">{workoutEntries.length}</p>
-          <p className="text-xs text-slate-500 mt-1">{totalBurned.toLocaleString()} kcal burned</p>
+          <p className="text-xs text-slate-500 mt-1">{totalBurned.toLocaleString()} {t('prog_kcal_burned')}</p>
         </div>
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-          <p className="text-xs text-slate-500 mb-1">Days food logged</p>
+          <p className="text-xs text-slate-500 mb-1">{t('prog_days_logged')}</p>
           <p className="text-2xl font-bold text-white">{daysLogged} <span className="text-slate-500 text-lg font-normal">/ 7</span></p>
           <div className="flex gap-1 mt-2">
             {last7.map(d => (
@@ -377,11 +371,11 @@ export default function ProgressPage() {
           </div>
         </div>
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-          <p className="text-xs text-slate-500 mb-1">Net this week</p>
+          <p className="text-xs text-slate-500 mb-1">{t('prog_net_week')}</p>
           <p className={`text-2xl font-bold ${(avgCal * 7 - totalBurned) > goal * 7 ? 'text-red-400' : 'text-green-400'}`}>
             {avgCal > 0 ? (avgCal * daysLogged - totalBurned).toLocaleString() : '—'}
           </p>
-          <p className="text-xs text-slate-500 mt-1">kcal total</p>
+          <p className="text-xs text-slate-500 mt-1">{t('prog_kcal_total')}</p>
         </div>
       </div>
 
@@ -390,28 +384,28 @@ export default function ProgressPage() {
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
           <div className="flex items-center gap-2">
             <span>✨</span>
-            <h2 className="font-semibold text-white">AI Insights</h2>
+            <h2 className="font-semibold text-white">{t('prog_ai_insights')}</h2>
           </div>
           {!insightsFetched && (
             <button onClick={fetchInsights} disabled={insightsLoading}
               className="text-sm text-blue-400 hover:text-blue-300 transition-colors disabled:text-slate-500">
-              {insightsLoading ? 'Analysing…' : 'Analyse my week →'}
+              {insightsLoading ? t('prog_analysing') : t('prog_analyse')}
             </button>
           )}
           {insightsFetched && (
             <button onClick={() => { setInsightsFetched(false); setInsights([]); fetchInsights(); }}
-              className="text-xs text-slate-500 hover:text-slate-300">Refresh</button>
+              className="text-xs text-slate-500 hover:text-slate-300">{t('prog_refresh')}</button>
           )}
         </div>
         {!insightsFetched && !insightsLoading && (
           <div className="px-5 py-8 text-center">
-            <p className="text-slate-400 text-sm">Tap "Analyse my week" to get personalised feedback based on your data.</p>
+            <p className="text-slate-400 text-sm">{t('prog_ai_hint')}</p>
           </div>
         )}
         {insightsLoading && (
           <div className="px-5 py-8 flex items-center justify-center gap-3">
             <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-            <p className="text-slate-400 text-sm">Reading your data…</p>
+            <p className="text-slate-400 text-sm">{t('prog_reading')}</p>
           </div>
         )}
         {insights.length > 0 && (
@@ -436,13 +430,13 @@ export default function ProgressPage() {
       {weightEntries.length > 0 && (
         <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
           <div className="px-5 py-3.5 border-b border-slate-800">
-            <h2 className="font-semibold text-white text-sm">Weight history</h2>
+            <h2 className="font-semibold text-white text-sm">{t('prog_weight_history')}</h2>
           </div>
           <div className="divide-y divide-slate-800/40">
             {weightEntries.slice(0, 8).map((e, i) => (
               <div key={e.id} className="px-5 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  {i === 0 && <span className="text-xs bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">Latest</span>}
+                  {i === 0 && <span className="text-xs bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">{t('prog_latest_badge')}</span>}
                   <span className="text-sm text-slate-400">
                     {new Date(e.date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
                   </span>

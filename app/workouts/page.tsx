@@ -147,9 +147,10 @@ export default function WorkoutsPage() {
           onChange={setAiInput}
           onSubmit={handleAiParse}
           isLoading={aiParsing}
-          placeholder="e.g. 45 min løbetur i roligt tempo, or 1 hour upper body weights"
-          label="Log workout with AI"
-          sublabel="describe it, AI estimates duration & calories"
+          label={t('ai_label_workout')}
+          sublabel={t('ai_sublabel_workout')}
+          placeholder={t('ai_placeholder_workout')}
+          hint={t('ai_hint')}
         />
         {aiError && <p className="text-red-400 text-xs mt-2">{aiError}</p>}
       </div>
