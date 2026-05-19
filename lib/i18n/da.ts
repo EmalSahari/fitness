@@ -115,6 +115,7 @@ const da: Record<TranslationKey, string> = {
   food_fat_g: 'Fedt (g)',
   food_save: 'Gem måltid',
   food_cancel: 'Annuller',
+  food_recent: 'Seneste',
   food_empty_title: 'Intet registreret endnu i dag',
   food_empty_sub: 'Tryk på "Tilføj måltid" for at starte',
   food_daily_total: 'Daglig total',

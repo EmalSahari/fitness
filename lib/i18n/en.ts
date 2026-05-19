@@ -113,6 +113,7 @@ const en = {
   food_fat_g: 'Fat (g)',
   food_save: 'Save meal',
   food_cancel: 'Cancel',
+  food_recent: 'Recent',
   food_empty_title: 'Nothing logged yet today',
   food_empty_sub: 'Tap "Add Meal" to start tracking',
   food_daily_total: 'Daily total',

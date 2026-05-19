@@ -26,6 +26,7 @@ export default function FoodPage() {
   const today = getTodayDate();
 
   const [entries, setEntries] = useState<FoodEntry[]>([]);
+  const [recentFoods, setRecentFoods] = useState<FoodEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(DEFAULT_FORM);
@@ -40,10 +41,39 @@ export default function FoodPage() {
   useEffect(() => {
     if (authLoading) return;
     if (!user) { setLoading(false); return; }
-    supabase.from('food_entries').select('*').eq('user_id', user.id).eq('date', today)
-      .order('created_at', { ascending: false })
-      .then(({ data }) => { setEntries((data ?? []) as FoodEntry[]); setLoading(false); });
+    Promise.all([
+      supabase.from('food_entries').select('*').eq('user_id', user.id).eq('date', today)
+        .order('created_at', { ascending: false }),
+      supabase.from('food_entries').select('*').eq('user_id', user.id).neq('date', today)
+        .order('created_at', { ascending: false }).limit(60),
+    ]).then(([todayRes, recentRes]) => {
+      setEntries((todayRes.data ?? []) as FoodEntry[]);
+      // Deduplicate by name (case-insensitive), keep most recent per name
+      const seen = new Set<string>();
+      const deduped: FoodEntry[] = [];
+      for (const e of (recentRes.data ?? []) as FoodEntry[]) {
+        const key = e.name.toLowerCase().trim();
+        if (!seen.has(key)) { seen.add(key); deduped.push(e); }
+        if (deduped.length >= 12) break;
+      }
+      setRecentFoods(deduped);
+      setLoading(false);
+    });
   }, [user, authLoading]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function pickRecent(food: FoodEntry) {
+    setForm({
+      name: food.name,
+      calories: String(food.calories),
+      mealType: food.meal_type,
+      protein: food.protein != null ? String(food.protein) : '',
+      carbs: food.carbs != null ? String(food.carbs) : '',
+      fat: food.fat != null ? String(food.fat) : '',
+    });
+    setShowForm(true);
+    setAiInput('');
+    setAiError('');
+  }
 
   async function handleAiParse() {
     if (!aiInput.trim()) return;
@@ -139,6 +169,25 @@ export default function FoodPage() {
         />
         {aiError && <p className="text-red-400 text-xs mt-2">{aiError}</p>}
       </div>
+
+      {/* Recent foods quick-pick */}
+      {recentFoods.length > 0 && !showForm && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-0.5">{t('food_recent')}</p>
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap">
+            {recentFoods.map(food => (
+              <button
+                key={food.id}
+                onClick={() => pickRecent(food)}
+                className="flex-shrink-0 flex flex-col items-start bg-slate-900 border border-slate-800 hover:border-blue-500/40 rounded-xl px-3.5 py-2.5 text-left transition-all group"
+              >
+                <span className="text-sm font-medium text-white group-hover:text-blue-300 transition-colors max-w-[120px] truncate">{food.name}</span>
+                <span className="text-xs text-slate-500 mt-0.5">{food.calories} kcal{food.protein ? ` · ${food.protein}g protein` : ''}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {showForm && (
         <div className="bg-slate-900 border border-blue-500/30 rounded-xl p-5">

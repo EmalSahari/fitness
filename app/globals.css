@@ -94,6 +94,10 @@ body {
 .animate-aurora-2 { animation: aurora-2 15s ease-in-out infinite; }
 .animate-aurora-3 { animation: aurora-3 10s ease-in-out infinite; }
 
+/* Hide scrollbar but keep scroll */
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+
 /* Chat bubble entrance */
 @keyframes slideUp {
   from { opacity: 0; transform: translateY(8px); }
