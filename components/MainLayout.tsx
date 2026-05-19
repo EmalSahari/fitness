@@ -14,7 +14,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   return (
     <>
       <AppBackground />
-      <main className="relative z-10 flex-1 md:ml-60 p-6 md:p-8 min-h-screen pb-24 md:pb-8">
+      <main className="relative z-10 flex-1 md:ml-60 p-4 sm:p-6 md:p-8 min-h-screen pb-24 md:pb-8">
         <div className="max-w-4xl mx-auto">{children}</div>
       </main>
     </>

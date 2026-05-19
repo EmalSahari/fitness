@@ -145,8 +145,8 @@ export default function FoodPage() {
           <h2 className="font-semibold text-white mb-4">{t('food_form_title')}</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm px-3 py-2 rounded-lg">{error}</div>}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="col-span-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="col-span-1 sm:col-span-2">
                 <label className="block text-xs font-medium text-slate-400 mb-1">{t('food_name')} *</label>
                 <input type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
                   placeholder="e.g. Chicken salad"
@@ -170,7 +170,7 @@ export default function FoodPage() {
                 <svg className="w-4 h-4 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
                 {t('food_macros')}
               </summary>
-              <div className="grid grid-cols-3 gap-3 mt-3">
+              <div className="grid grid-cols-3 sm:grid-cols-3 gap-3 mt-3">
                 {(['protein', 'carbs', 'fat'] as const).map(macro => (
                   <div key={macro}>
                     <label className="block text-xs font-medium text-slate-400 mb-1">{t(`food_${macro}_g` as const)}</label>

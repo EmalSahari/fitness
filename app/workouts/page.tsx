@@ -127,7 +127,7 @@ export default function WorkoutsPage() {
         </button>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
         {([
           { val: totalBurned.toLocaleString(), label: t('wkt_kcal_burned_today'), color: 'text-green-400' },
           { val: String(totalMins),             label: t('wkt_minutes_today'),     color: 'text-blue-400' },
@@ -167,7 +167,7 @@ export default function WorkoutsPage() {
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-400 mb-2">{t('wkt_type')} *</label>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {WORKOUT_TYPES.map(({ value, icon, labelKey }) => (
                   <button key={value} type="button" onClick={() => setForm({ ...form, type: value })}
                     className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
@@ -178,7 +178,7 @@ export default function WorkoutsPage() {
                 ))}
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1">{t('wkt_duration_min')} *</label>
                 <input type="number" value={form.duration} onChange={e => setForm({ ...form, duration: e.target.value })} placeholder="45" min={1}

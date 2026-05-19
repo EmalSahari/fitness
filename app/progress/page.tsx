@@ -346,7 +346,7 @@ export default function ProgressPage() {
       </div>
 
       {/* Weekly stats */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
           <p className="text-xs text-slate-500 mb-1">{t('prog_avg_cal')}</p>
           <p className="text-2xl font-bold text-white">{avgCal > 0 ? avgCal.toLocaleString() : '—'}</p>

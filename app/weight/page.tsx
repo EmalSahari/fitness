@@ -155,7 +155,7 @@ export default function WeightPage() {
           <h2 className="font-semibold text-white mb-4">{t('wt_form_title')}</h2>
           <form onSubmit={handleSave} className="space-y-4">
             {error && <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm px-3 py-2 rounded-lg">{error}</div>}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1">{t('wt_weight_kg')} *</label>
                 <input type="number" value={weightInput} onChange={e => setWeightInput(e.target.value)} placeholder="75.5" step={0.1} min={10} max={500}
