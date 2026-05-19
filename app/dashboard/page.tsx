@@ -187,7 +187,11 @@ export default function DashboardPage() {
       </div>
 
       {/* Calorie ring card */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+      <div className="relative bg-slate-900 border border-slate-800 rounded-xl p-5 overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full opacity-10 blur-3xl"
+            style={{ background: 'radial-gradient(circle, #3b82f6 0%, transparent 70%)' }} />
+        </div>
         <div className="flex items-center justify-between mb-2">
           <h2 className="font-semibold text-white">{t('dash_calories_today')}</h2>
           <div className="flex items-center gap-1.5">
@@ -196,7 +200,7 @@ export default function DashboardPage() {
           </div>
         </div>
         <CalorieRing consumed={totalCalIn} goal={goal} burned={totalCalBurned} />
-      </div>
+        </div>
 
       {/* Macro + workout stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
