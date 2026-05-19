@@ -34,6 +34,16 @@ body {
   animation: progressFill 0.6s ease-out forwards;
 }
 
+/* Border beam traveling light */
+@keyframes border-beam {
+  0%   { offset-distance: 0%; }
+  100% { offset-distance: 100%; }
+}
+.animate-border-beam {
+  animation: border-beam var(--border-beam-duration, 6s) var(--border-beam-delay, 0s) linear infinite;
+  offset-path: rect(0 auto auto 0 round 12px);
+}
+
 /* Sparkle star animation */
 @keyframes sparkle {
   0%   { transform: translate(-50%,-50%) scale(0) rotate(0deg);   opacity: 0; }

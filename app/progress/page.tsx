@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/auth-context';
 import { createClient } from '@/lib/supabase/client';
 import { getTodayDate, getLast7Days } from '@/lib/utils';
 import type { WeightEntry, FoodEntry, WorkoutEntry } from '@/lib/types';
+import BorderBeam from '@/components/BorderBeam';
 
 type Insight = { type: 'positive' | 'warning' | 'suggestion'; title: string; text: string };
 
@@ -271,7 +272,8 @@ export default function ProgressPage() {
       )}
 
       {/* Weight chart card */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+      <div className="relative bg-slate-900 rounded-xl p-5 overflow-hidden">
+        <BorderBeam color="rgba(59,130,246,0.7)" duration={9} />
         <div className="flex items-center justify-between mb-3">
           <div>
             <h2 className="font-semibold text-white">Weight</h2>
@@ -307,7 +309,8 @@ export default function ProgressPage() {
       </div>
 
       {/* Calories this week chart */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+      <div className="relative bg-slate-900 rounded-xl p-5 overflow-hidden">
+        <BorderBeam color="rgba(34,197,94,0.6)" duration={11} delay={4} />
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-semibold text-white">Calories this week</h2>
           <div className="flex items-center gap-3 text-xs text-slate-500">
@@ -338,7 +341,8 @@ export default function ProgressPage() {
       </div>
 
       {/* Workout activity */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+      <div className="relative bg-slate-900 rounded-xl p-5 overflow-hidden">
+        <BorderBeam color="rgba(139,92,246,0.7)" duration={13} delay={7} />
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-semibold text-white">Workout activity</h2>
           <span className="text-xs text-slate-500">{workoutEntries.length} sessions · {totalBurned.toLocaleString()} kcal burned</span>
