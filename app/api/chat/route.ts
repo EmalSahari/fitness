@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { FoodEntry, WorkoutEntry } from '@/lib/types';
+import { createClient } from '@/lib/supabase/server';
+
+const MAX_MESSAGE_LENGTH = 500;
+const MAX_MESSAGES_IN_HISTORY = 20;
 
 function getOpenAI() {
   return new OpenAI({ apiKey: process.env.OPENAI_API_KEY ?? '' });
@@ -35,8 +39,13 @@ function buildSystemPrompt(
         ).join('\n')
       : '  (no workouts logged yet)';
 
-  return `You are FitCoach, a knowledgeable, encouraging, and concise personal fitness coach.
-You have access to the user's real-time data for today. Use it to give specific, actionable advice.
+  return `You are FitCoach, a knowledgeable, encouraging, and concise personal fitness coach built into a fitness tracking app.
+
+STRICT SCOPE RULES — you must follow these without exception:
+- You ONLY answer questions about nutrition, food, exercise, workouts, body composition, fitness goals, recovery, hydration, sleep as it relates to fitness, and the user's personal data shown below.
+- If a user asks about anything outside fitness and nutrition (coding, politics, entertainment, general knowledge, writing, math, etc.), respond with exactly: "I'm your fitness coach — I can only help with nutrition and workout questions. What would you like to know about your diet or training?"
+- Never break character or discuss your own nature, capabilities, or the technology behind you.
+- Do not write code, essays, poems, or any content unrelated to fitness.
 
 USER: ${settings.name || 'Anonymous'}
 
@@ -61,9 +70,13 @@ Guidelines:
 }
 
 export async function POST(req: NextRequest) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+
   if (!process.env.OPENAI_API_KEY) {
     return NextResponse.json(
-      { error: 'OpenAI API key is not configured. Add OPENAI_API_KEY to .env.local.' },
+      { error: 'OpenAI API key is not configured.' },
       { status: 500 }
     );
   }
@@ -76,12 +89,21 @@ export async function POST(req: NextRequest) {
     settings: { calorieGoal: number; name: string };
   };
 
+  // Validate last user message length
+  const lastMessage = messages[messages.length - 1];
+  if (lastMessage?.role === 'user' && lastMessage.content.length > MAX_MESSAGE_LENGTH) {
+    return NextResponse.json({ error: 'Message too long. Please keep it under 500 characters.' }, { status: 400 });
+  }
+
+  // Cap history to prevent token bloat from long conversations
+  const trimmedMessages = messages.slice(-MAX_MESSAGES_IN_HISTORY);
+
   const systemPrompt = buildSystemPrompt(foodEntries, workoutEntries, settings);
 
   const completion = await getOpenAI().chat.completions.create({
     model: 'gpt-4o-mini',
-    messages: [{ role: 'system', content: systemPrompt }, ...messages],
-    max_tokens: 600,
+    messages: [{ role: 'system', content: systemPrompt }, ...trimmedMessages],
+    max_tokens: 400,
     temperature: 0.7,
   });
 

@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { createClient } from '@/lib/supabase/server';
+
+const MAX_INPUT = 300;
 
 function getOpenAI() {
   return new OpenAI({ apiKey: process.env.OPENAI_API_KEY ?? '' });
 }
 
 export async function POST(req: NextRequest) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+
   if (!process.env.OPENAI_API_KEY) {
     return NextResponse.json({ error: 'OpenAI API key not configured.' }, { status: 500 });
   }
@@ -14,6 +21,9 @@ export async function POST(req: NextRequest) {
   if (!description?.trim()) {
     return NextResponse.json({ error: 'No description provided.' }, { status: 400 });
   }
+  if (description.length > MAX_INPUT) {
+    return NextResponse.json({ error: 'Description too long. Max 300 characters.' }, { status: 400 });
+  }
 
   const completion = await getOpenAI().chat.completions.create({
     model: 'gpt-4o-mini',
@@ -21,8 +31,11 @@ export async function POST(req: NextRequest) {
     messages: [
       {
         role: 'system',
-        content: `You are a nutrition expert. The user describes food they ate — in any language including Danish.
-Return a JSON object with these fields:
+        content: `You are a nutrition expert. The user describes food or drinks they consumed — in any language including Danish.
+
+IMPORTANT: If the input is not a food or drink description (e.g. it is a question, code, a non-food topic, or gibberish), return exactly: {"error":"not_food"}
+
+Otherwise return a JSON object with:
 - name: short descriptive name including quantity if relevant (e.g. "3x Spicy Chicken Taquito (7-Eleven)")
 - calories: integer, TOTAL kcal for everything described (multiply per-item calories by quantity)
 - protein: number, TOTAL grams (1 decimal)
@@ -30,25 +43,13 @@ Return a JSON object with these fields:
 - fat: number, TOTAL grams (1 decimal)
 - meal_type: one of "breakfast", "lunch", "dinner", "snack"
 
-CRITICAL — quantities:
-- If the user says "3 taquitos", calculate 3 × (calories per taquito)
-- If the user says "2 slices", calculate 2 × (calories per slice)
-- Always sum everything up — return the TOTAL for the whole meal, not per item
-- Named branded/chain items (7-Eleven, McDonald's, Starbucks, etc.): use known nutrition data for that specific product
-
-Examples of correct quantity handling:
-- "3 spicy chicken taquitos from 7-eleven" → 3 × 250 kcal = 750 kcal total
-- "2 stk rugbrød med smør" → 2 × ~110 kcal = ~220 kcal total
-
-Other rules:
+Rules:
+- Always return TOTAL for the whole meal, never per-item
+- Named branded/chain items: use known nutrition data for that specific product
 - Use realistic Danish/Nordic portion sizes where relevant (1 slice rugbrød = ~65g)
-- meal_type: infer from the food (rugbrød = breakfast/lunch, pasta = dinner, taquito = snack, etc.)
 - Respond with ONLY valid JSON, no explanation`,
       },
-      {
-        role: 'user',
-        content: description,
-      },
+      { role: 'user', content: description },
     ],
     response_format: { type: 'json_object' },
     max_tokens: 200,
@@ -57,6 +58,9 @@ Other rules:
   const raw = completion.choices[0]?.message?.content ?? '{}';
   try {
     const parsed = JSON.parse(raw);
+    if (parsed.error === 'not_food') {
+      return NextResponse.json({ error: 'Please describe food or a drink — this field is only for logging meals.' }, { status: 422 });
+    }
     return NextResponse.json(parsed);
   } catch {
     return NextResponse.json({ error: 'Failed to parse nutrition data.' }, { status: 500 });
