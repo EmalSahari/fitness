@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/auth-context';
 import { createClient } from '@/lib/supabase/client';
 import { getTodayDate, getLast7Days, clamp } from '@/lib/utils';
 import type { FoodEntry, WorkoutEntry, WeightEntry } from '@/lib/types';
+import type { TranslationKey } from '@/lib/i18n/en';
 
 const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
 
@@ -36,7 +37,7 @@ function useCountUp(target: number, duration = 800) {
 }
 
 // Circular progress ring
-function CalorieRing({ consumed, goal, burned, t }: { consumed: number; goal: number; burned: number; t: (k: string) => string }) {
+function CalorieRing({ consumed, goal, burned, t }: { consumed: number; goal: number; burned: number; t: (k: TranslationKey) => string }) {
   const size = 200;
   const strokeW = 14;
   const r = (size - strokeW) / 2;
