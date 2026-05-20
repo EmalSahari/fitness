@@ -14,7 +14,7 @@ export function setCached<T>(key: string, data: T): void {
 }
 
 export function invalidateCache(...prefixes: string[]): void {
-  for (const key of store.keys()) {
+  Array.from(store.keys()).forEach(key => {
     if (prefixes.some(p => key.startsWith(p))) store.delete(key);
-  }
+  });
 }
