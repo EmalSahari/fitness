@@ -11,11 +11,14 @@ function getOpenAI() {
   return new OpenAI({ apiKey: process.env.OPENAI_API_KEY ?? '' });
 }
 
+type UserStats = { age?: number; weight_kg?: number; height_cm?: number; sex?: string; activity_level?: string; goal?: string };
+
 function buildSystemPrompt(
   foodEntries: FoodEntry[],
   workoutEntries: WorkoutEntry[],
   settings: { calorieGoal: number; name: string },
-  memory: string
+  memory: string,
+  stats: UserStats | null
 ): string {
   const totalCal = foodEntries.reduce((s, e) => s + e.calories, 0);
   const totalBurned = workoutEntries.reduce((s, e) => s + e.calories_burned, 0);
@@ -57,7 +60,8 @@ STRICT SCOPE RULES — you must follow these without exception:
 - Never break character or discuss your own nature, capabilities, or the technology behind you.
 - Do not write code, essays, poems, or any content unrelated to fitness.
 
-${memorySection}USER: ${settings.name || 'Anonymous'}
+${memorySection}USER: ${settings.name || 'Anonymous'}${stats ? `
+BODY STATS (from profile):${stats.age ? `\n- Age: ${stats.age}` : ''}${stats.height_cm ? `\n- Height: ${stats.height_cm} cm` : ''}${stats.weight_kg ? `\n- Weight: ${stats.weight_kg} kg` : ''}${stats.sex ? `\n- Sex: ${stats.sex}` : ''}${stats.activity_level ? `\n- Activity level: ${stats.activity_level}` : ''}${stats.goal ? `\n- Fitness goal: ${stats.goal}` : ''}` : ''}
 
 TODAY'S SUMMARY (${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}):
 - Calorie goal: ${settings.calorieGoal} kcal
@@ -148,16 +152,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Message too long. Please keep it under 1000 characters.' }, { status: 400 });
   }
 
-  // Fetch current memory
-  const { data: profileData } = await supabase
-    .from('profiles')
-    .select('coach_memory')
-    .eq('id', user.id)
-    .single();
-  const memory: string = (profileData as { coach_memory?: string } | null)?.coach_memory ?? '';
+  // Fetch current memory and user stats in parallel
+  const [profileRes, statsRes] = await Promise.all([
+    supabase.from('profiles').select('coach_memory').eq('id', user.id).single(),
+    supabase.from('user_stats').select('age, weight_kg, height_cm, sex, activity_level, goal').eq('user_id', user.id).maybeSingle(),
+  ]);
+  const memory: string = (profileRes.data as { coach_memory?: string } | null)?.coach_memory ?? '';
+  const stats: UserStats | null = statsRes.data ?? null;
 
   const trimmedMessages = messages.slice(-MAX_MESSAGES_IN_HISTORY);
-  const systemPrompt = buildSystemPrompt(foodEntries, workoutEntries, settings, memory);
+  const systemPrompt = buildSystemPrompt(foodEntries, workoutEntries, settings, memory, stats);
   const openai = getOpenAI();
 
   const completion = await openai.chat.completions.create({
