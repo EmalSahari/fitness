@@ -2,14 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import webpush from 'web-push';
 import { createClient } from '@/lib/supabase/server';
 
-webpush.setVapidDetails(
-  process.env.VAPID_EMAIL ?? 'mailto:admin@example.com',
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? '',
-  process.env.VAPID_PRIVATE_KEY ?? '',
-);
-
 // Called by Vercel Cron — secured by CRON_SECRET header
 export async function GET(req: NextRequest) {
+  // Set VAPID details at request time so env vars are available
+  webpush.setVapidDetails(
+    process.env.VAPID_EMAIL ?? 'mailto:admin@example.com',
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? '',
+    process.env.VAPID_PRIVATE_KEY ?? '',
+  );
   const authHeader = req.headers.get('authorization');
   if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
