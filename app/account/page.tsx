@@ -314,20 +314,11 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-const MORNING_OPTIONS = [5,6,7,8,9,10];
-const EVENING_OPTIONS = [16,17,18,19,20,21,22];
-
-function fmt24(h: number) { return `${String(h).padStart(2,'0')}:00`; }
 
 function NotificationToggle({ t }: { t: (k: TranslationKey) => string }) {
   const [status, setStatus] = useState<'idle' | 'enabled' | 'denied' | 'unsupported'>('idle');
   const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [morningHour, setMorningHour] = useState(8);
-  const [eveningHour, setEveningHour] = useState(19);
-  const [savedMorning, setSavedMorning] = useState(8);
-  const [savedEvening, setSavedEvening] = useState(19);
 
   useEffect(() => {
     if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
@@ -336,22 +327,9 @@ function NotificationToggle({ t }: { t: (k: TranslationKey) => string }) {
     }
     if (Notification.permission === 'denied') { setStatus('denied'); return; }
     navigator.serviceWorker.ready.then(reg =>
-      reg.pushManager.getSubscription().then(sub => {
-        if (sub) {
-          setStatus('enabled');
-          // Load saved times from DB
-          fetch('/api/push/subscribe').then(r => r.json()).then(d => {
-            if (d.morning_hour) { setMorningHour(d.morning_hour); setSavedMorning(d.morning_hour); }
-            if (d.evening_hour) { setEveningHour(d.evening_hour); setSavedEvening(d.evening_hour); }
-          }).catch(() => {});
-        } else {
-          setStatus('idle');
-        }
-      })
+      reg.pushManager.getSubscription().then(sub => setStatus(sub ? 'enabled' : 'idle'))
     ).catch(() => setStatus('idle'));
   }, []);
-
-  const timesChanged = morningHour !== savedMorning || eveningHour !== savedEvening;
 
   async function toggle() {
     setLoading(true);
@@ -385,7 +363,6 @@ function NotificationToggle({ t }: { t: (k: TranslationKey) => string }) {
           setLoading(false);
           return;
         }
-
         const sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(vapidKey),
@@ -393,35 +370,14 @@ function NotificationToggle({ t }: { t: (k: TranslationKey) => string }) {
         await fetch('/api/push/subscribe', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ subscription: sub, morningHour, eveningHour }),
+          body: JSON.stringify({ subscription: sub }),
         });
-        setSavedMorning(morningHour);
-        setSavedEvening(eveningHour);
         setStatus('enabled');
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setErrorMsg(msg);
+      setErrorMsg(err instanceof Error ? err.message : String(err));
     }
     setLoading(false);
-  }
-
-  async function saveTimes() {
-    setSaving(true);
-    try {
-      const reg = await navigator.serviceWorker.ready;
-      const sub = await reg.pushManager.getSubscription();
-      await fetch('/api/push/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subscription: sub, morningHour, eveningHour }),
-      });
-      setSavedMorning(morningHour);
-      setSavedEvening(eveningHour);
-    } catch {
-      setErrorMsg('Could not save times. Try again.');
-    }
-    setSaving(false);
   }
 
   if (status === 'unsupported') return null;
@@ -435,7 +391,7 @@ function NotificationToggle({ t }: { t: (k: TranslationKey) => string }) {
             {status === 'denied'
               ? t('notif_denied')
               : status === 'enabled'
-              ? `${fmt24(savedMorning)} & ${fmt24(savedEvening)}`
+              ? t('notif_daily_schedule')
               : t('notif_subtitle')}
           </p>
         </div>
@@ -449,48 +405,8 @@ function NotificationToggle({ t }: { t: (k: TranslationKey) => string }) {
           </button>
         )}
       </div>
-
       {errorMsg && (
         <p className="text-xs text-red-400 mt-3 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{errorMsg}</p>
-      )}
-
-      {status !== 'denied' && (
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5">{t('notif_morning_label')}</label>
-            <select
-              value={morningHour}
-              onChange={e => setMorningHour(Number(e.target.value))}
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
-            >
-              {MORNING_OPTIONS.map(h => <option key={h} value={h}>{fmt24(h)}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5">{t('notif_evening_label')}</label>
-            <select
-              value={eveningHour}
-              onChange={e => setEveningHour(Number(e.target.value))}
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
-            >
-              {EVENING_OPTIONS.map(h => <option key={h} value={h}>{fmt24(h)}</option>)}
-            </select>
-          </div>
-        </div>
-      )}
-
-      {status === 'enabled' && timesChanged && (
-        <button
-          onClick={saveTimes}
-          disabled={saving}
-          className="mt-3 w-full bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 text-white text-sm font-medium py-2 rounded-lg transition-colors"
-        >
-          {saving ? '…' : t('acc_save')}
-        </button>
-      )}
-
-      {status === 'idle' && (
-        <p className="text-xs text-slate-500 mt-3">{t('notif_subtitle')}</p>
       )}
     </div>
   );

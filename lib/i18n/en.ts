@@ -334,6 +334,10 @@ const en = {
   notif_morning_label: 'Morning reminder',
   notif_evening_label: 'Evening reminder',
   notif_time_note: 'Times are in your local timezone',
+  notif_daily_schedule: 'Daily reminder at 09:00',
+
+  // Onboarding language picker
+  ob_language_title: 'Choose your language',
 
   // Install prompt
   install_title: 'Add FitTrack to your home screen',

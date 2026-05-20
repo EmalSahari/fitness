@@ -336,6 +336,10 @@ const da: Record<TranslationKey, string> = {
   notif_morning_label: 'Morgen påmindelse',
   notif_evening_label: 'Aften påmindelse',
   notif_time_note: 'Tider er i din lokale tidszone',
+  notif_daily_schedule: 'Daglig påmindelse kl. 09:00',
+
+  // Onboarding language picker
+  ob_language_title: 'Vælg dit sprog',
 
   // Install prompt
   install_title: 'Tilføj FitTrack til din startskærm',

@@ -6,27 +6,33 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/auth-context';
 import { calculateTDEE, calorieGoalFromGoal, proteinGoalFromWeight } from '@/lib/utils';
-import type { Sex, ActivityLevel, FitnessGoal } from '@/lib/types';
+import type { Sex, ActivityLevel, FitnessGoal, Language } from '@/lib/types';
+import type { TranslationKey } from '@/lib/i18n/en';
 
 type Step = 1 | 2 | 3;
 
-const ACTIVITY_OPTIONS: { value: ActivityLevel; emoji: string; label: string; desc: string }[] = [
-  { value: 'sedentary',   emoji: '🪑', label: 'Sedentary',       desc: 'Desk job, little or no exercise' },
-  { value: 'light',       emoji: '🚶', label: 'Lightly active',   desc: 'Light exercise 1–3 days/week' },
-  { value: 'moderate',    emoji: '🏃', label: 'Moderately active',desc: 'Moderate exercise 3–5 days/week' },
-  { value: 'active',      emoji: '💪', label: 'Very active',      desc: 'Hard exercise 6–7 days/week' },
-  { value: 'very_active', emoji: '🏋️', label: 'Extra active',     desc: 'Physical job or 2× daily training' },
+const ACTIVITY_OPTIONS: { value: ActivityLevel; emoji: string; label: TranslationKey; desc: TranslationKey }[] = [
+  { value: 'sedentary',   emoji: '🪑', label: 'ob_activity_sedentary',   desc: 'ob_activity_sedentary_desc' },
+  { value: 'light',       emoji: '🚶', label: 'ob_activity_light',        desc: 'ob_activity_light_desc' },
+  { value: 'moderate',    emoji: '🏃', label: 'ob_activity_moderate',     desc: 'ob_activity_moderate_desc' },
+  { value: 'active',      emoji: '💪', label: 'ob_activity_active',       desc: 'ob_activity_active_desc' },
+  { value: 'very_active', emoji: '🏋️', label: 'ob_activity_very_active',  desc: 'ob_activity_very_active_desc' },
 ];
 
-const GOAL_OPTIONS: { value: FitnessGoal; emoji: string; label: string; desc: string }[] = [
-  { value: 'lose_fat',      emoji: '🔥', label: 'Lose fat',           desc: 'Calorie deficit · −500 kcal/day' },
-  { value: 'build_muscle',  emoji: '💪', label: 'Build muscle',        desc: 'Calorie surplus · +300 kcal/day' },
-  { value: 'maintain',      emoji: '⚖️', label: 'Maintain weight',     desc: 'Eat at maintenance calories' },
-  { value: 'performance',   emoji: '⚡', label: 'Improve performance', desc: 'Fuel training · +200 kcal/day' },
+const GOAL_OPTIONS: { value: FitnessGoal; emoji: string; label: TranslationKey; desc: TranslationKey }[] = [
+  { value: 'lose_fat',     emoji: '🔥', label: 'ob_goal_lose_fat',      desc: 'ob_goal_lose_fat_desc' },
+  { value: 'build_muscle', emoji: '💪', label: 'ob_goal_build_muscle',   desc: 'ob_goal_build_muscle_desc' },
+  { value: 'maintain',     emoji: '⚖️', label: 'ob_goal_maintain',       desc: 'ob_goal_maintain_desc' },
+  { value: 'performance',  emoji: '⚡', label: 'ob_goal_performance',    desc: 'ob_goal_performance_desc' },
+];
+
+const LANGUAGES: { value: Language; flag: string; label: string }[] = [
+  { value: 'en', flag: '🇬🇧', label: 'English' },
+  { value: 'da', flag: '🇩🇰', label: 'Dansk' },
 ];
 
 export default function OnboardingPage() {
-  const { user, refreshProfile } = useAuth();
+  const { user, refreshProfile, t, language, setLanguage } = useAuth();
   const router = useRouter();
   const supabase = createClient();
 
@@ -34,37 +40,26 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Step 1 fields
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
   const [weightKg, setWeightKg] = useState('');
   const [heightCm, setHeightCm] = useState('');
   const [sex, setSex] = useState<Sex>('male');
-
-  // Step 2 field
   const [activityLevel, setActivityLevel] = useState<ActivityLevel>('moderate');
-
-  // Step 3 field
   const [goal, setGoal] = useState<FitnessGoal>('maintain');
 
   const tdee =
     weightKg && heightCm && age
-      ? calculateTDEE(
-          parseFloat(weightKg),
-          parseFloat(heightCm),
-          parseInt(age, 10),
-          sex,
-          activityLevel
-        )
+      ? calculateTDEE(parseFloat(weightKg), parseFloat(heightCm), parseInt(age, 10), sex, activityLevel)
       : null;
 
   const suggestedGoal = tdee ? calorieGoalFromGoal(tdee, goal) : null;
 
   function validateStep1(): boolean {
-    if (!name.trim()) { setError('Please enter your name.'); return false; }
-    if (!age || parseInt(age) < 13 || parseInt(age) > 100) { setError('Please enter a valid age.'); return false; }
-    if (!weightKg || parseFloat(weightKg) < 20) { setError('Please enter a valid weight.'); return false; }
-    if (!heightCm || parseFloat(heightCm) < 100) { setError('Please enter a valid height.'); return false; }
+    if (!name.trim()) { setError(language === 'da' ? 'Indtast venligst dit navn.' : 'Please enter your name.'); return false; }
+    if (!age || parseInt(age) < 13 || parseInt(age) > 100) { setError(language === 'da' ? 'Angiv en gyldig alder.' : 'Please enter a valid age.'); return false; }
+    if (!weightKg || parseFloat(weightKg) < 20) { setError(language === 'da' ? 'Angiv en gyldig vægt.' : 'Please enter a valid weight.'); return false; }
+    if (!heightCm || parseFloat(heightCm) < 100) { setError(language === 'da' ? 'Angiv en gyldig højde.' : 'Please enter a valid height.'); return false; }
     return true;
   }
 
@@ -83,7 +78,6 @@ export default function OnboardingPage() {
 
     if (profileErr) { setError(profileErr.message); setLoading(false); return; }
 
-    // Upsert stats
     await supabase.from('user_stats').upsert({
       user_id: user.id,
       age: parseInt(age, 10),
@@ -94,7 +88,6 @@ export default function OnboardingPage() {
       goal,
     }, { onConflict: 'user_id' });
 
-    // Log initial weight
     await supabase.from('weight_entries').insert({
       user_id: user.id,
       weight_kg: parseFloat(weightKg),
@@ -105,7 +98,7 @@ export default function OnboardingPage() {
     router.push('/dashboard');
   }
 
-  const stepLabels = ['About you', 'Activity level', 'Your goal'];
+  const stepLabels: TranslationKey[] = ['ob_step1', 'ob_step2', 'ob_step3'];
 
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
@@ -122,27 +115,23 @@ export default function OnboardingPage() {
 
         {/* Step indicator */}
         <div className="flex items-center gap-2 mb-6 justify-center">
-          {stepLabels.map((label, i) => {
+          {stepLabels.map((labelKey, i) => {
             const n = (i + 1) as Step;
             const done = step > n;
             const active = step === n;
             return (
-              <React.Fragment key={label}>
+              <React.Fragment key={labelKey}>
                 <div className="flex items-center gap-1.5">
-                  <div
-                    className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
-                      done ? 'bg-blue-600 text-white' : active ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-500'
-                    }`}
-                  >
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+                    done || active ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-500'
+                  }`}>
                     {done ? '✓' : n}
                   </div>
                   <span className={`text-xs font-medium hidden sm:block ${active ? 'text-white' : 'text-slate-500'}`}>
-                    {label}
+                    {t(labelKey)}
                   </span>
                 </div>
-                {i < 2 && (
-                  <div className={`flex-1 h-px max-w-8 ${done ? 'bg-blue-600' : 'bg-slate-800'}`} />
-                )}
+                {i < 2 && <div className={`flex-1 h-px max-w-8 ${done ? 'bg-blue-600' : 'bg-slate-800'}`} />}
               </React.Fragment>
             );
           })}
@@ -158,39 +147,62 @@ export default function OnboardingPage() {
           {/* STEP 1 */}
           {step === 1 && (
             <div className="space-y-4">
-              <div>
-                <h2 className="text-xl font-bold text-white">About you</h2>
-                <p className="text-slate-400 text-sm mt-0.5">We use this to calculate your daily calorie needs.</p>
+              {/* Language picker */}
+              <div className="pb-2 border-b border-slate-800">
+                <p className="text-xs font-medium text-slate-500 mb-2">{t('ob_language_title')}</p>
+                <div className="flex gap-2">
+                  {LANGUAGES.map(({ value, flag, label }) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setLanguage(value)}
+                      className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                        language === value
+                          ? 'bg-blue-600/15 border-blue-500/40 text-blue-300'
+                          : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600'
+                      }`}
+                    >
+                      <span className="text-base">{flag}</span>
+                      <span>{label}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">Your name</label>
-                <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="What should we call you?"
+                <h2 className="text-xl font-bold text-white">{t('ob_step1')}</h2>
+                <p className="text-slate-400 text-sm mt-0.5">{t('ob_subtitle')}</p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1.5">{t('ob_name')}</label>
+                <input type="text" value={name} onChange={e => setName(e.target.value)}
+                  placeholder={t('ob_name_placeholder')}
                   className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500" autoFocus />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1.5">Age</label>
+                  <label className="block text-xs font-medium text-slate-400 mb-1.5">{t('ob_age')}</label>
                   <input type="number" value={age} onChange={e => setAge(e.target.value)} placeholder="25" min={13} max={100}
                     className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1.5">Biological sex</label>
+                  <label className="block text-xs font-medium text-slate-400 mb-1.5">{t('ob_sex')}</label>
                   <select value={sex} onChange={e => setSex(e.target.value as Sex)}
                     className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-blue-500">
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                    <option value="other">Other</option>
+                    <option value="male">{t('ob_sex_male')}</option>
+                    <option value="female">{t('ob_sex_female')}</option>
+                    <option value="other">{t('ob_sex_other')}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1.5">Weight (kg)</label>
+                  <label className="block text-xs font-medium text-slate-400 mb-1.5">{t('ob_weight_kg')}</label>
                   <input type="number" value={weightKg} onChange={e => setWeightKg(e.target.value)} placeholder="75" min={20} max={300} step={0.1}
                     className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1.5">Height (cm)</label>
+                  <label className="block text-xs font-medium text-slate-400 mb-1.5">{t('ob_height_cm')}</label>
                   <input type="number" value={heightCm} onChange={e => setHeightCm(e.target.value)} placeholder="175" min={100} max={250}
                     className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500" />
                 </div>
@@ -198,7 +210,7 @@ export default function OnboardingPage() {
 
               <button onClick={() => { setError(''); if (validateStep1()) setStep(2); }}
                 className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-2.5 rounded-lg text-sm transition-colors mt-2">
-                Continue →
+                {t('ob_continue')}
               </button>
             </div>
           )}
@@ -207,10 +219,8 @@ export default function OnboardingPage() {
           {step === 2 && (
             <div className="space-y-4">
               <div>
-                <h2 className="text-xl font-bold text-white">How active are you day-to-day?</h2>
-                <p className="text-slate-400 text-sm mt-0.5">Used to calculate your total daily energy expenditure.</p>
+                <h2 className="text-xl font-bold text-white">{t('ob_activity_title')}</h2>
               </div>
-
               <div className="space-y-2">
                 {ACTIVITY_OPTIONS.map(({ value, emoji, label, desc }) => (
                   <button key={value} onClick={() => setActivityLevel(value)}
@@ -221,20 +231,19 @@ export default function OnboardingPage() {
                     }`}>
                     <span className="text-2xl w-8 text-center flex-shrink-0">{emoji}</span>
                     <div>
-                      <p className="text-sm font-medium">{label}</p>
-                      <p className="text-xs text-slate-500">{desc}</p>
+                      <p className="text-sm font-medium">{t(label)}</p>
+                      <p className="text-xs text-slate-500">{t(desc)}</p>
                     </div>
                     {activityLevel === value && <div className="ml-auto w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />}
                   </button>
                 ))}
               </div>
-
               <div className="flex gap-2 pt-1">
                 <button onClick={() => setStep(1)} className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium py-2.5 rounded-lg text-sm transition-colors">
-                  ← Back
+                  {t('ob_back')}
                 </button>
                 <button onClick={() => setStep(3)} className="flex-[2] bg-blue-600 hover:bg-blue-500 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">
-                  Continue →
+                  {t('ob_continue')}
                 </button>
               </div>
             </div>
@@ -244,10 +253,8 @@ export default function OnboardingPage() {
           {step === 3 && (
             <div className="space-y-4">
               <div>
-                <h2 className="text-xl font-bold text-white">What is your main goal?</h2>
-                <p className="text-slate-400 text-sm mt-0.5">This adjusts your calorie target accordingly.</p>
+                <h2 className="text-xl font-bold text-white">{t('ob_goal_title')}</h2>
               </div>
-
               <div className="space-y-2">
                 {GOAL_OPTIONS.map(({ value, emoji, label, desc }) => (
                   <button key={value} onClick={() => setGoal(value)}
@@ -258,23 +265,22 @@ export default function OnboardingPage() {
                     }`}>
                     <span className="text-2xl w-8 text-center flex-shrink-0">{emoji}</span>
                     <div>
-                      <p className="text-sm font-medium">{label}</p>
-                      <p className="text-xs text-slate-500">{desc}</p>
+                      <p className="text-sm font-medium">{t(label)}</p>
+                      <p className="text-xs text-slate-500">{t(desc)}</p>
                     </div>
                     {goal === value && <div className="ml-auto w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />}
                   </button>
                 ))}
               </div>
 
-              {/* TDEE summary */}
               {tdee && (
                 <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-4 flex items-center justify-between">
                   <div>
-                    <p className="text-xs text-slate-400">Your estimated daily needs (TDEE)</p>
+                    <p className="text-xs text-slate-400">{t('ob_tdee_label')}</p>
                     <p className="text-lg font-bold text-white">{tdee.toLocaleString()} kcal</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs text-slate-400">Suggested goal</p>
+                    <p className="text-xs text-slate-400">{t('ob_calorie_goal_label')}</p>
                     <p className="text-lg font-bold text-blue-400">{suggestedGoal?.toLocaleString()} kcal</p>
                   </div>
                 </div>
@@ -282,11 +288,11 @@ export default function OnboardingPage() {
 
               <div className="flex gap-2 pt-1">
                 <button onClick={() => setStep(2)} className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium py-2.5 rounded-lg text-sm transition-colors">
-                  ← Back
+                  {t('ob_back')}
                 </button>
                 <button onClick={handleFinish} disabled={loading}
                   className="flex-[2] bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">
-                  {loading ? 'Saving…' : '🚀 Start tracking'}
+                  {loading ? '…' : t('ob_finish')}
                 </button>
               </div>
             </div>
