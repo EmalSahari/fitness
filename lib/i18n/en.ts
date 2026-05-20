@@ -325,12 +325,15 @@ const en = {
   notif_subtitle: 'Get nudged to log meals and stay on track',
   notif_enable: 'Enable reminders',
   notif_disable: 'Disable reminders',
-  notif_enabled: 'Reminders on',
+  notif_enabled: 'Reminders active',
   notif_denied: 'Notifications blocked — enable them in browser settings',
   notif_unsupported: 'Not supported on this browser',
   notif_morning_title: 'Good morning! 🌅',
   notif_morning_body: 'Ready to start tracking today?',
   notif_evening_title: 'Evening check-in 🌙',
+  notif_morning_label: 'Morning reminder',
+  notif_evening_label: 'Evening reminder',
+  notif_time_note: 'Times are in your local timezone',
 };
 
 export type TranslationKey = keyof typeof en;

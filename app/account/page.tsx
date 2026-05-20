@@ -314,10 +314,17 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+const MORNING_OPTIONS = [5,6,7,8,9,10];
+const EVENING_OPTIONS = [16,17,18,19,20,21,22];
+
+function fmt24(h: number) { return `${String(h).padStart(2,'0')}:00`; }
+
 function NotificationToggle({ t }: { t: (k: TranslationKey) => string }) {
   const [status, setStatus] = useState<'idle' | 'enabled' | 'denied' | 'unsupported'>('idle');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [morningHour, setMorningHour] = useState(8);
+  const [eveningHour, setEveningHour] = useState(19);
 
   useEffect(() => {
     if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
@@ -371,7 +378,11 @@ function NotificationToggle({ t }: { t: (k: TranslationKey) => string }) {
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(vapidKey),
         });
-        await fetch('/api/push/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: sub }) });
+        await fetch('/api/push/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subscription: sub, morningHour, eveningHour }),
+        });
         setStatus('enabled');
       }
     } catch (err) {
@@ -405,11 +416,32 @@ function NotificationToggle({ t }: { t: (k: TranslationKey) => string }) {
       {errorMsg && (
         <p className="text-xs text-red-400 mt-3 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{errorMsg}</p>
       )}
+      {status !== 'denied' && !errorMsg && (
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-medium text-slate-400 mb-1.5">{t('notif_morning_label')}</label>
+            <select
+              value={morningHour}
+              onChange={e => setMorningHour(Number(e.target.value))}
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+            >
+              {MORNING_OPTIONS.map(h => <option key={h} value={h}>{fmt24(h)}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-400 mb-1.5">{t('notif_evening_label')}</label>
+            <select
+              value={eveningHour}
+              onChange={e => setEveningHour(Number(e.target.value))}
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+            >
+              {EVENING_OPTIONS.map(h => <option key={h} value={h}>{fmt24(h)}</option>)}
+            </select>
+          </div>
+        </div>
+      )}
       {status === 'enabled' && !errorMsg && (
-        <p className="text-xs text-blue-400 mt-3 flex items-center gap-1.5">
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-          {t('notif_enabled')} — 8am &amp; 7pm daily
-        </p>
+        <p className="text-xs text-slate-500 mt-2">{t('notif_time_note')}</p>
       )}
     </div>
   );

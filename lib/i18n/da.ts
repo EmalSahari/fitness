@@ -333,6 +333,9 @@ const da: Record<TranslationKey, string> = {
   notif_morning_title: 'God morgen! 🌅',
   notif_morning_body: 'Klar til at starte trackingen i dag?',
   notif_evening_title: 'Aftentjek 🌙',
+  notif_morning_label: 'Morgen påmindelse',
+  notif_evening_label: 'Aften påmindelse',
+  notif_time_note: 'Tider er i din lokale tidszone',
 };
 
 export default da;
