@@ -168,24 +168,26 @@ export default function FoodPage() {
           onClose={() => setShowScanner(false)}
         />
       )}
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold text-white">{t('food_title')}</h1>
-          <p className="text-slate-400 text-sm mt-0.5">{new Date().toLocaleDateString()} — {totalCal.toLocaleString()} {t('food_subtitle_kcal')}</p>
+          <p className="text-slate-400 text-sm mt-0.5 truncate">{new Date().toLocaleDateString()} — {totalCal.toLocaleString()} {t('food_subtitle_kcal')}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Barcode scan — icon only on mobile */}
           <button onClick={() => setShowScanner(true)}
-            className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-sm font-medium px-3 py-2 rounded-lg transition-colors"
+            className="flex items-center justify-center bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 w-9 h-9 rounded-lg transition-colors sm:w-auto sm:h-auto sm:px-3 sm:py-2 sm:gap-1.5"
             title={t('scan_btn')}>
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v1m0 14v1M4 12h1m14 0h1m-2.05-7.95-.7.7M6.75 17.25l-.7.7M17.25 17.25l.7.7M6.75 6.75l-.7-.7M12 8a4 4 0 100 8 4 4 0 000-8z" />
+            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h2M4 12h2M4 18h2M18 6h2M18 12h2M18 18h2M8 4v2M12 4v2M16 4v2M8 18v2M12 18v2M16 18v2M8 8h8v8H8z" />
             </svg>
-            <span className="hidden sm:inline">{t('scan_btn')}</span>
+            <span className="hidden sm:inline text-sm font-medium">{t('scan_btn')}</span>
           </button>
           <button onClick={() => { setShowForm(!showForm); setAiInput(''); setAiError(''); }}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-            {t('food_add_btn')}
+            className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-3 py-2 rounded-lg transition-colors whitespace-nowrap">
+            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+            <span className="hidden xs:inline">{t('food_add_btn')}</span>
+            <span className="xs:hidden">Log</span>
           </button>
         </div>
       </div>
@@ -209,7 +211,7 @@ export default function FoodPage() {
       {recentFoods.length > 0 && !showForm && (
         <div className="space-y-2">
           <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-0.5">{t('food_recent')}</p>
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap">
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide sm:flex-wrap">
             {recentFoods.map(food => (
               <button
                 key={food.id}
@@ -300,7 +302,7 @@ export default function FoodPage() {
                 </div>
                 <div className="divide-y divide-slate-800/40">
                   {group.map(entry => (
-                    <div key={entry.id} className="px-5 py-3 flex items-start justify-between group">
+                    <div key={entry.id} className="px-4 py-3 flex items-center gap-3 group">
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-slate-200 truncate">{entry.name}</p>
                         {(entry.protein != null || entry.carbs != null || entry.fat != null) && (
@@ -311,13 +313,11 @@ export default function FoodPage() {
                           </p>
                         )}
                       </div>
-                      <div className="flex items-center gap-3 ml-3 flex-shrink-0">
-                        <span className="text-sm font-medium text-white">{entry.calories} kcal</span>
-                        <button onClick={() => handleDelete(entry.id)}
-                          className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400 transition-all" title="Delete">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                        </button>
-                      </div>
+                      <span className="text-sm font-medium text-white flex-shrink-0">{entry.calories} kcal</span>
+                      <button onClick={() => handleDelete(entry.id)}
+                        className="text-slate-600 hover:text-red-400 active:text-red-400 transition-colors flex-shrink-0 p-1 -mr-1 md:opacity-0 md:group-hover:opacity-100" title="Delete">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      </button>
                     </div>
                   ))}
                 </div>
