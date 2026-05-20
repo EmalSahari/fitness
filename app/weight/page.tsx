@@ -38,14 +38,13 @@ export default function WeightPage() {
     const stored = localStorage.getItem(`goal_weight_${user.id}`);
     if (stored) setGoalWeight(parseFloat(stored));
 
-    Promise.all([
-      supabase.from('weight_entries').select('*').eq('user_id', user.id).order('date', { ascending: false }),
-      supabase.from('user_stats').select('height_cm').eq('user_id', user.id).single(),
-    ]).then(([weightRes, statsRes]) => {
-      setEntries((weightRes.data ?? []) as WeightEntry[]);
-      if (statsRes.data?.height_cm) setHeightCm(statsRes.data.height_cm);
-      setLoading(false);
-    });
+    supabase.from('weight_entries').select('*').eq('user_id', user.id)
+      .order('date', { ascending: false })
+      .then(({ data }) => { setEntries((data ?? []) as WeightEntry[]); setLoading(false); });
+
+    supabase.from('user_stats').select('height_cm').eq('user_id', user.id)
+      .maybeSingle()
+      .then(({ data }) => { if (data?.height_cm) setHeightCm(data.height_cm); });
   }, [user, authLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function saveGoal() {
