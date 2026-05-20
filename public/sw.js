@@ -1,18 +1,9 @@
-const CACHE = 'fittrack-v1';
-const STATIC = [
-  '/',
-  '/dashboard',
-  '/food',
-  '/workouts',
-  '/progress',
-  '/coach',
-  '/account',
-];
+const CACHE = 'fittrack-v3';
 
 self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(STATIC)).then(() => self.skipWaiting())
-  );
+  // Skip waiting immediately — don't block on pre-caching
+  // (pre-caching failures were preventing SW activation and causing push timeout)
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', e => {

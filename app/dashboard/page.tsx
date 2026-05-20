@@ -137,7 +137,7 @@ export default function DashboardPage() {
     async function load() {
       const [foodRes, workoutRes, weightRes, allDatesRes, totalWorkoutsRes] = await Promise.all([
         supabase.from('food_entries').select('*').eq('user_id', user!.id).eq('date', today).order('created_at', { ascending: false }),
-        supabase.from('workout_entries').select('*').eq('user_id', user!.id).in('date', [today, ...last7]).order('created_at', { ascending: false }),
+        supabase.from('workout_entries').select('*').eq('user_id', user!.id).in('date', last7).order('created_at', { ascending: false }),
         supabase.from('weight_entries').select('*').eq('user_id', user!.id).order('date', { ascending: false }).limit(1),
         supabase.from('food_entries').select('date').eq('user_id', user!.id),
         supabase.from('workout_entries').select('id', { count: 'exact', head: true }).eq('user_id', user!.id),
