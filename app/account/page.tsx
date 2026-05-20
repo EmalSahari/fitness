@@ -21,6 +21,7 @@ const GOAL_OPTIONS: { value: FitnessGoal; emoji: string; label: TranslationKey; 
   { value: 'build_muscle', emoji: '💪', label: 'ob_goal_build_muscle',  desc: 'ob_goal_build_muscle_desc' },
   { value: 'maintain',     emoji: '⚖️', label: 'ob_goal_maintain',      desc: 'ob_goal_maintain_desc' },
   { value: 'performance',  emoji: '⚡', label: 'ob_goal_performance',   desc: 'ob_goal_performance_desc' },
+  { value: 'custom',       emoji: '✏️', label: 'ob_goal_custom',        desc: 'ob_goal_custom_desc' },
 ];
 
 export default function AccountPage() {
@@ -35,6 +36,7 @@ export default function AccountPage() {
   const [sex, setSex] = useState<Sex>('male');
   const [activityLevel, setActivityLevel] = useState<ActivityLevel>('moderate');
   const [goal, setGoal] = useState<FitnessGoal>('maintain');
+  const [customGoalText, setCustomGoalText] = useState('');
   const [calorieGoal, setCalorieGoal] = useState('2000');
   const [proteinGoal, setProteinGoal] = useState('150');
 
@@ -64,6 +66,7 @@ export default function AccountPage() {
         if (stats.sex)         setSex(stats.sex as Sex);
         if (stats.activity_level) setActivityLevel(stats.activity_level as ActivityLevel);
         if (stats.goal)        setGoal(stats.goal as FitnessGoal);
+        if (stats.custom_goal_text) setCustomGoalText(stats.custom_goal_text);
       });
   }, [user, profile]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -97,6 +100,7 @@ export default function AccountPage() {
       sex,
       activity_level: activityLevel,
       goal,
+      custom_goal_text: goal === 'custom' ? (customGoalText.trim() || null) : null,
     }, { onConflict: 'user_id' });
 
     await refreshProfile();
@@ -199,6 +203,16 @@ export default function AccountPage() {
               </button>
             ))}
           </div>
+          {goal === 'custom' && (
+            <textarea
+              value={customGoalText}
+              onChange={e => setCustomGoalText(e.target.value)}
+              placeholder={t('ob_goal_custom_placeholder')}
+              rows={2}
+              maxLength={200}
+              className="mt-2 w-full bg-slate-800 border border-blue-500/40 rounded-lg px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500 resize-none"
+            />
+          )}
         </Field>
       </Section>
 

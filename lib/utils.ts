@@ -54,6 +54,7 @@ export function calorieGoalFromGoal(tdee: number, goal: FitnessGoal): number {
     build_muscle: 300,
     maintain: 0,
     performance: 200,
+    custom: 0,
   };
   return Math.max(1200, tdee + adjustments[goal]);
 }
@@ -65,6 +66,7 @@ export function proteinGoalFromWeight(weightKg: number, goal: FitnessGoal): numb
     build_muscle: 2.0,
     maintain: 1.4,
     performance: 1.8,
+    custom: 1.6,
   };
   return Math.round(weightKg * multipliers[goal]);
 }

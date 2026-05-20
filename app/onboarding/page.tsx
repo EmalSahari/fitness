@@ -24,6 +24,7 @@ const GOAL_OPTIONS: { value: FitnessGoal; emoji: string; label: TranslationKey; 
   { value: 'build_muscle', emoji: '💪', label: 'ob_goal_build_muscle',   desc: 'ob_goal_build_muscle_desc' },
   { value: 'maintain',     emoji: '⚖️', label: 'ob_goal_maintain',       desc: 'ob_goal_maintain_desc' },
   { value: 'performance',  emoji: '⚡', label: 'ob_goal_performance',    desc: 'ob_goal_performance_desc' },
+  { value: 'custom',       emoji: '✏️', label: 'ob_goal_custom',         desc: 'ob_goal_custom_desc' },
 ];
 
 const LANGUAGES: { value: Language; flag: string; label: string }[] = [
@@ -47,6 +48,7 @@ export default function OnboardingPage() {
   const [sex, setSex] = useState<Sex>('male');
   const [activityLevel, setActivityLevel] = useState<ActivityLevel>('moderate');
   const [goal, setGoal] = useState<FitnessGoal>('maintain');
+  const [customGoalText, setCustomGoalText] = useState('');
 
   const tdee =
     weightKg && heightCm && age
@@ -90,6 +92,7 @@ export default function OnboardingPage() {
       sex,
       activity_level: activityLevel,
       goal,
+      ...(goal === 'custom' && customGoalText.trim() ? { custom_goal_text: customGoalText.trim() } : {}),
     }, { onConflict: 'user_id' });
 
     await supabase.from('weight_entries').insert({
@@ -275,6 +278,17 @@ export default function OnboardingPage() {
                     {goal === value && <div className="ml-auto w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />}
                   </button>
                 ))}
+                {goal === 'custom' && (
+                  <textarea
+                    value={customGoalText}
+                    onChange={e => setCustomGoalText(e.target.value)}
+                    placeholder={t('ob_goal_custom_placeholder')}
+                    rows={2}
+                    maxLength={200}
+                    autoFocus
+                    className="w-full bg-slate-800 border border-blue-500/40 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500 resize-none"
+                  />
+                )}
               </div>
 
               {tdee && (

@@ -1,7 +1,7 @@
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 export type WorkoutType = 'cardio' | 'strength' | 'hiit' | 'yoga' | 'sports' | 'other';
 export type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active';
-export type FitnessGoal = 'lose_fat' | 'build_muscle' | 'maintain' | 'performance';
+export type FitnessGoal = 'lose_fat' | 'build_muscle' | 'maintain' | 'performance' | 'custom';
 export type Sex = 'male' | 'female' | 'other';
 export type Plan = 'free' | 'pro';
 export type Language = 'en' | 'da';
@@ -28,6 +28,7 @@ export interface UserStats {
   sex?: Sex;
   activity_level?: ActivityLevel;
   goal?: FitnessGoal;
+  custom_goal_text?: string;
   updated_at: string;
 }
 

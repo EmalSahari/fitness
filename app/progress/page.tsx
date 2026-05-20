@@ -191,7 +191,7 @@ export default function ProgressPage() {
   const [weightEntries, setWeightEntries] = useState<WeightEntry[]>([]);
   const [foodEntries, setFoodEntries] = useState<FoodEntry[]>([]);
   const [workoutEntries, setWorkoutEntries] = useState<WorkoutEntry[]>([]);
-  const [userStats, setUserStats] = useState<{ goal?: string } | null>(null);
+  const [userStats, setUserStats] = useState<{ goal?: string; custom_goal_text?: string } | null>(null);
   const [loading, setLoading] = useState(true);
 
   const [showWeightForm, setShowWeightForm] = useState(false);
@@ -213,7 +213,7 @@ export default function ProgressPage() {
       supabase.from('weight_entries').select('*').eq('user_id', user.id).order('date', { ascending: false }).limit(weightLimit),
       supabase.from('food_entries').select('*').eq('user_id', user.id).gte('date', startDate).lte('date', today),
       supabase.from('workout_entries').select('*').eq('user_id', user.id).gte('date', startDate).lte('date', today),
-      supabase.from('user_stats').select('goal').eq('user_id', user.id).single(),
+      supabase.from('user_stats').select('goal, custom_goal_text').eq('user_id', user.id).single(),
     ]);
     setWeightEntries((w.data ?? []) as WeightEntry[]);
     setFoodEntries((f.data ?? []) as FoodEntry[]);
@@ -262,6 +262,7 @@ export default function ProgressPage() {
         workoutsPerWeek: Math.round(workoutEntries.length / (n / 7)),
         calorieGoal: profile?.calorie_goal ?? 2000,
         goal: userStats?.goal ?? profile?.calorie_goal, name: profile?.name, tdee: null,
+        customGoalText: userStats?.custom_goal_text ?? null,
         periodLabel: period === '7d' ? 'last 7 days' : period === '30d' ? 'last 30 days' : 'last 3 months',
       }),
     });
