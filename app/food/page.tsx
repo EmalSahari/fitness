@@ -181,18 +181,18 @@ export default function FoodPage() {
     if (error) { setSaving(false); return `[${error.code}] ${error.message}`; }
     if (!data) { setSaving(false); return 'No data returned.'; }
 
-    // Set ingredients via RPC — bypasses PostgREST column schema cache
+    // Set ingredients via direct DB route — bypasses PostgREST schema cache entirely
     if (food.ingredients && food.ingredients.length > 0) {
-      const { error: rpcErr } = await supabase.rpc('set_food_ingredients', {
-        p_id: data.id,
-        p_user_id: user!.id,
-        p_ingredients: food.ingredients,
+      const res = await fetch('/api/food/set-ingredients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: data.id, ingredients: food.ingredients }),
       });
-      if (rpcErr) {
-        // Row saved without ingredients — report but don't fail
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
         setEntries(prev => [data as FoodEntry, ...prev]);
         setSaving(false);
-        return `Meal saved but ingredients failed: [${rpcErr.code}] ${rpcErr.message}`;
+        return `Meal saved but ingredients failed: ${body.error ?? res.statusText}`;
       }
       setEntries(prev => [{ ...data, ingredients: food.ingredients } as FoodEntry, ...prev]);
     } else {
