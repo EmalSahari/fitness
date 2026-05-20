@@ -7,7 +7,7 @@ export function getTodayDate(): string {
 export function getLast7Days(): string[] {
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
-    d.setDate(d.getDate() - (6 - i)); // oldest first → left to right
+    d.setDate(d.getDate() - i); // today first → data on the left
     return d.toISOString().split('T')[0];
   });
 }
