@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 import { getTodayDate, getLast7Days, clamp } from '@/lib/utils';
 import { calculateStreak, calculateBadges } from '@/lib/streak';
 import type { FoodEntry, WorkoutEntry, WeightEntry } from '@/lib/types';
+import { DashboardSkeleton } from '@/components/Skeleton';
 import type { TranslationKey } from '@/lib/i18n/en';
 
 const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
@@ -152,13 +153,7 @@ export default function DashboardPage() {
     load();
   }, [user, authLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (authLoading || dataLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  if (authLoading || dataLoading) return <DashboardSkeleton />;
 
   const todayFood = foodEntries;
   const todayWorkouts = workoutEntries.filter(e => e.date === today);

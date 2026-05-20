@@ -7,6 +7,7 @@ import { getTodayDate } from '@/lib/utils';
 import type { FoodEntry, MealType } from '@/lib/types';
 import AiPromptInput from '@/components/AiPromptInput';
 import BarcodeScanner from '@/components/BarcodeScanner';
+import { FoodSkeleton } from '@/components/Skeleton';
 
 const MEAL_TYPES: MealType[] = ['breakfast', 'lunch', 'dinner', 'snack'];
 
@@ -161,7 +162,7 @@ export default function FoodPage() {
     setSaving(false);
   }
 
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /></div>;
+  if (loading) return <FoodSkeleton />;
 
   return (
     <div className="space-y-5">

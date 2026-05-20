@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { createClient } from '@/lib/supabase/client';
+import { ProgressSkeleton } from '@/components/Skeleton';
 import { getTodayDate, getLastNDays } from '@/lib/utils';
 import type { WeightEntry, FoodEntry, WorkoutEntry } from '@/lib/types';
 
@@ -272,11 +273,7 @@ export default function ProgressPage() {
     setInsightsLoading(false);
   }
 
-  if (loading) return (
-    <div className="flex items-center justify-center h-64">
-      <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-    </div>
-  );
+  if (loading) return <ProgressSkeleton />;
 
   const sorted = [...weightEntries].sort((a, b) => a.date.localeCompare(b.date));
   const latest = weightEntries[0] ?? null;

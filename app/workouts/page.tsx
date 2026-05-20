@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { createClient } from '@/lib/supabase/client';
+import { WorkoutsSkeleton } from '@/components/Skeleton';
 import { getTodayDate, getLast7Days } from '@/lib/utils';
 import type { WorkoutEntry, WorkoutType } from '@/lib/types';
 import type { TranslationKey } from '@/lib/i18n/en';
@@ -111,7 +112,7 @@ export default function WorkoutsPage() {
   const totalBurned = todayEntries.reduce((s, e) => s + e.calories_burned, 0);
   const totalMins = todayEntries.reduce((s, e) => s + e.duration, 0);
 
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /></div>;
+  if (loading) return <WorkoutsSkeleton />;
 
   return (
     <div className="space-y-5">
