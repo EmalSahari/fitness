@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { createClient } from '@/lib/supabase/client';
 import { getTodayDate, getLast7Days, clamp } from '@/lib/utils';
+import { calculateStreak, calculateBadges } from '@/lib/streak';
 import type { FoodEntry, WorkoutEntry, WeightEntry } from '@/lib/types';
 import type { TranslationKey } from '@/lib/i18n/en';
 
@@ -119,6 +120,8 @@ export default function DashboardPage() {
   const [foodEntries, setFoodEntries] = useState<FoodEntry[]>([]);
   const [workoutEntries, setWorkoutEntries] = useState<WorkoutEntry[]>([]);
   const [latestWeight, setLatestWeight] = useState<WeightEntry | null>(null);
+  const [allFoodDates, setAllFoodDates] = useState<string[]>([]);
+  const [totalWorkoutCount, setTotalWorkoutCount] = useState(0);
   const [dataLoading, setDataLoading] = useState(true);
   const [calorieGoalInput, setCalorieGoalInput] = useState('');
 
@@ -132,14 +135,18 @@ export default function DashboardPage() {
     if (authLoading) return;
     if (!user) { setDataLoading(false); return; }
     async function load() {
-      const [foodRes, workoutRes, weightRes] = await Promise.all([
+      const [foodRes, workoutRes, weightRes, allDatesRes, totalWorkoutsRes] = await Promise.all([
         supabase.from('food_entries').select('*').eq('user_id', user!.id).eq('date', today).order('created_at', { ascending: false }),
         supabase.from('workout_entries').select('*').eq('user_id', user!.id).in('date', last7).order('created_at', { ascending: false }),
         supabase.from('weight_entries').select('*').eq('user_id', user!.id).order('date', { ascending: false }).limit(1),
+        supabase.from('food_entries').select('date').eq('user_id', user!.id),
+        supabase.from('workout_entries').select('id', { count: 'exact', head: true }).eq('user_id', user!.id),
       ]);
       setFoodEntries((foodRes.data ?? []) as FoodEntry[]);
       setWorkoutEntries((workoutRes.data ?? []) as WorkoutEntry[]);
       setLatestWeight(((weightRes.data ?? [])[0] ?? null) as WeightEntry | null);
+      setAllFoodDates(((allDatesRes.data ?? []) as { date: string }[]).map(r => r.date));
+      setTotalWorkoutCount(totalWorkoutsRes.count ?? 0);
       setDataLoading(false);
     }
     load();
@@ -156,6 +163,8 @@ export default function DashboardPage() {
   const todayFood = foodEntries;
   const todayWorkouts = workoutEntries.filter(e => e.date === today);
   const weeklyWorkoutCount = workoutEntries.length;
+  const streak = calculateStreak(allFoodDates);
+  const badges = calculateBadges(streak, totalWorkoutCount, allFoodDates.length > 0);
   const goal = profile?.calorie_goal ?? 2000;
   const proteinGoal = profile?.protein_goal ?? 150;
 
@@ -185,14 +194,40 @@ export default function DashboardPage() {
             })}
           </p>
         </div>
-        <Link href="/coach"
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-3 py-2 rounded-lg transition-colors">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-3 3v-3z" />
-          </svg>
-          {t('dash_ask_coach')}
-        </Link>
+        <div className="flex items-center gap-2">
+          {streak > 0 && (
+            <div className="flex items-center gap-1.5 bg-orange-500/10 border border-orange-500/20 rounded-lg px-3 py-2">
+              <span className="text-lg leading-none">🔥</span>
+              <div className="text-right">
+                <p className="text-sm font-bold text-orange-400 leading-none">{streak}</p>
+                <p className="text-xs text-orange-400/70 leading-none mt-0.5">{t('streak_label')}</p>
+              </div>
+            </div>
+          )}
+          <Link href="/coach"
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-3 py-2 rounded-lg transition-colors">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-3 3v-3z" />
+            </svg>
+            {t('dash_ask_coach')}
+          </Link>
+        </div>
       </div>
+
+      {/* Badges */}
+      {badges.some(b => b.earned) && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('badges_title')}</p>
+          <div className="flex gap-2 flex-wrap">
+            {badges.filter(b => b.earned).map(badge => (
+              <span key={badge.key}
+                className="flex items-center gap-1.5 bg-slate-800 border border-slate-700 rounded-full px-3 py-1 text-xs font-medium text-slate-300">
+                {badge.emoji} {t(badge.labelKey as Parameters<typeof t>[0])}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Calorie ring card */}
       <div className="relative bg-slate-900 rounded-xl p-5 overflow-hidden" style={{ border: '1px solid rgba(59,130,246,0.2)', boxShadow: '0 0 24px rgba(59,130,246,0.06)' }}>

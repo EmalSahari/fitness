@@ -281,7 +281,7 @@ const da: Record<TranslationKey, string> = {
 
   // Coach
   coach_title: 'AI-træner',
-  coach_subtitle: 'Drevet af GPT-4o mini · Kender dagens data',
+  coach_subtitle: 'Din personlige AI-fitnesscoach',
   coach_context: 'Dagens kontekst:',
   coach_eaten: 'kcal spist',
   coach_burned_label: 'kcal forbrændt',
@@ -295,6 +295,44 @@ const da: Record<TranslationKey, string> = {
   coach_suggest_2: 'Hvordan var min træningspræstation i dag?',
   coach_suggest_3: 'Rammer jeg mine proteinmål?',
   coach_suggest_4: 'Giv mig et hurtigt ernæringstip',
+
+  // Streaks & badges
+  streak_label: 'dages streak',
+  streak_label_singular: 'dages streak',
+  badge_first_log: 'Første log',
+  badge_3day: '3-dages streak',
+  badge_7day: '7-dages streak',
+  badge_14day: '14-dages streak',
+  badge_30day: '30-dages streak',
+  badge_10workouts: '10 træninger',
+  badge_50workouts: '50 træninger',
+  badges_title: 'Præstationer',
+
+  // Barcode scanner
+  scan_btn: 'Scan stregkode',
+  scan_title: 'Scan en stregkode',
+  scan_subtitle: 'Peg kameraet mod en produktstregkode',
+  scan_not_supported: 'Kamerascanning understøttes ikke i denne browser. Prøv Chrome på Android.',
+  scan_no_product: 'Produkt ikke fundet i databasen. Prøv at indtaste manuelt.',
+  scan_error: 'Kunne ikke scanne. Prøv igen eller indtast manuelt.',
+  scan_found: 'Produkt fundet',
+  scan_per_100g: 'Per 100g',
+  scan_serving: 'Portionsstørrelse (g)',
+  scan_add: 'Tilføj til madlog',
+  scan_cancel: 'Annuller',
+  scan_requesting: 'Anmoder om kamera…',
+
+  // Push notifications
+  notif_title: 'Daglige påmindelser',
+  notif_subtitle: 'Bliv mindet om at logge måltider og holde dig på sporet',
+  notif_enable: 'Aktivér påmindelser',
+  notif_disable: 'Deaktivér påmindelser',
+  notif_enabled: 'Påmindelser aktive',
+  notif_denied: 'Notifikationer blokeret — aktivér dem i browserindstillingerne',
+  notif_unsupported: 'Understøttes ikke i denne browser',
+  notif_morning_title: 'God morgen! 🌅',
+  notif_morning_body: 'Klar til at starte trackingen i dag?',
+  notif_evening_title: 'Aftentjek 🌙',
 };
 
 export default da;

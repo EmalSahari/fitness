@@ -114,3 +114,12 @@ CREATE TABLE IF NOT EXISTS feedback (
 ALTER TABLE feedback ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "insert_own_feedback" ON feedback FOR INSERT WITH CHECK (auth.uid() = user_id OR user_id IS NULL);
 CREATE POLICY "read_own_feedback"   ON feedback FOR SELECT USING (auth.uid() = user_id);
+
+-- Push subscriptions
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  subscription TEXT NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE push_subscriptions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users manage own push sub" ON push_subscriptions FOR ALL USING (auth.uid() = user_id);

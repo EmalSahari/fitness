@@ -268,6 +268,9 @@ export default function AccountPage() {
         ) : t('acc_save')}
       </button>
 
+      {/* Push notifications */}
+      <NotificationToggle t={t} />
+
       {/* Language + sign out — shown on mobile where sidebar isn't visible */}
       <div className="md:hidden bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
         <button
@@ -309,4 +312,84 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       {children}
     </div>
   );
+}
+
+function NotificationToggle({ t }: { t: (k: TranslationKey) => string }) {
+  const [status, setStatus] = useState<'idle' | 'enabled' | 'denied' | 'unsupported'>('idle');
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+      setStatus('unsupported');
+      return;
+    }
+    if (Notification.permission === 'denied') { setStatus('denied'); return; }
+    navigator.serviceWorker.ready.then(reg =>
+      reg.pushManager.getSubscription().then(sub => {
+        setStatus(sub ? 'enabled' : 'idle');
+      })
+    );
+  }, []);
+
+  async function toggle() {
+    setLoading(true);
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const existing = await reg.pushManager.getSubscription();
+
+      if (existing) {
+        await existing.unsubscribe();
+        await fetch('/api/push/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: null }) });
+        setStatus('idle');
+      } else {
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') { setStatus('denied'); setLoading(false); return; }
+
+        const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!;
+        const sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(vapidKey),
+        });
+        await fetch('/api/push/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: sub }) });
+        setStatus('enabled');
+      }
+    } catch { /* ignore */ }
+    setLoading(false);
+  }
+
+  if (status === 'unsupported') return null;
+
+  return (
+    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-sm font-semibold text-white">{t('notif_title')}</h2>
+          <p className="text-xs text-slate-400 mt-0.5">
+            {status === 'denied' ? t('notif_denied') : t('notif_subtitle')}
+          </p>
+        </div>
+        {status !== 'denied' && (
+          <button onClick={toggle} disabled={loading}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${status === 'enabled' ? 'bg-blue-600' : 'bg-slate-700'}`}>
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${status === 'enabled' ? 'translate-x-6' : 'translate-x-1'}`} />
+          </button>
+        )}
+      </div>
+      {status === 'enabled' && (
+        <p className="text-xs text-blue-400 mt-3 flex items-center gap-1.5">
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+          {t('notif_enabled')} — 8am &amp; 7pm daily
+        </p>
+      )}
+    </div>
+  );
+}
+
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(base64);
+  const arr = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+  return arr;
 }

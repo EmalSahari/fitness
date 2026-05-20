@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/auth-context';
 
 export default function FeedbackButton() {
@@ -15,7 +14,6 @@ export default function FeedbackButton() {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState(false);
-  const supabase = createClient();
 
   if (!user || pathname.startsWith('/auth') || pathname === '/onboarding') return null;
 
@@ -25,14 +23,13 @@ export default function FeedbackButton() {
     setSending(true);
     setError(false);
 
-    const { error: err } = await supabase.from('feedback').insert({
-      user_id: user!.id,
-      rating: rating || null,
-      message: message.trim(),
-      page: pathname,
+    const res = await fetch('/api/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rating: rating || null, message: message.trim(), page: pathname }),
     });
 
-    if (err) { setError(true); setSending(false); return; }
+    if (!res.ok) { setError(true); setSending(false); return; }
 
     setSent(true);
     setSending(false);

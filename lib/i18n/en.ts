@@ -279,7 +279,7 @@ const en = {
 
   // Coach
   coach_title: 'AI Coach',
-  coach_subtitle: "Powered by GPT-4o mini · Knows today's data",
+  coach_subtitle: 'Your personal AI fitness coach',
   coach_context: "Today's context:",
   coach_eaten: 'kcal eaten',
   coach_burned_label: 'kcal burned',
@@ -293,6 +293,44 @@ const en = {
   coach_suggest_2: 'How was my workout performance today?',
   coach_suggest_3: 'Am I hitting my protein goals?',
   coach_suggest_4: 'Give me a quick nutrition tip',
+
+  // Streaks & badges
+  streak_label: 'day streak',
+  streak_label_singular: 'day streak',
+  badge_first_log: 'First log',
+  badge_3day: '3-day streak',
+  badge_7day: '7-day streak',
+  badge_14day: '14-day streak',
+  badge_30day: '30-day streak',
+  badge_10workouts: '10 workouts',
+  badge_50workouts: '50 workouts',
+  badges_title: 'Achievements',
+
+  // Barcode scanner
+  scan_btn: 'Scan barcode',
+  scan_title: 'Scan a barcode',
+  scan_subtitle: 'Point camera at a product barcode',
+  scan_not_supported: 'Camera scanning not supported on this browser. Try Chrome on Android.',
+  scan_no_product: 'Product not found in database. Try entering manually.',
+  scan_error: 'Could not scan. Try again or enter manually.',
+  scan_found: 'Product found',
+  scan_per_100g: 'Per 100g',
+  scan_serving: 'Serving size (g)',
+  scan_add: 'Add to food log',
+  scan_cancel: 'Cancel',
+  scan_requesting: 'Requesting camera…',
+
+  // Push notifications
+  notif_title: 'Daily reminders',
+  notif_subtitle: 'Get nudged to log meals and stay on track',
+  notif_enable: 'Enable reminders',
+  notif_disable: 'Disable reminders',
+  notif_enabled: 'Reminders on',
+  notif_denied: 'Notifications blocked — enable them in browser settings',
+  notif_unsupported: 'Not supported on this browser',
+  notif_morning_title: 'Good morning! 🌅',
+  notif_morning_body: 'Ready to start tracking today?',
+  notif_evening_title: 'Evening check-in 🌙',
 };
 
 export type TranslationKey = keyof typeof en;

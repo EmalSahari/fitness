@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { getTodayDate } from '@/lib/utils';
 import type { FoodEntry, MealType } from '@/lib/types';
 import AiPromptInput from '@/components/AiPromptInput';
+import BarcodeScanner from '@/components/BarcodeScanner';
 
 const MEAL_TYPES: MealType[] = ['breakfast', 'lunch', 'dinner', 'snack'];
 
@@ -37,6 +38,7 @@ export default function FoodPage() {
   const [aiInput, setAiInput] = useState('');
   const [aiParsing, setAiParsing] = useState(false);
   const [aiError, setAiError] = useState('');
+  const [showScanner, setShowScanner] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -139,20 +141,53 @@ export default function FoodPage() {
 
   const totalCal = entries.reduce((s, e) => s + e.calories, 0);
 
+  async function handleScanAdd(food: { name: string; calories: number; protein: number | null; carbs: number | null; fat: number | null; mealType: MealType }) {
+    setSaving(true);
+    const newEntry = {
+      user_id: user!.id,
+      name: food.name,
+      calories: food.calories,
+      meal_type: food.mealType,
+      protein: food.protein,
+      carbs: food.carbs,
+      fat: food.fat,
+      date: today,
+    };
+    const { data } = await supabase.from('food_entries').insert(newEntry).select().single();
+    if (data) setEntries(prev => [data as FoodEntry, ...prev]);
+    setSaving(false);
+  }
+
   if (loading) return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /></div>;
 
   return (
     <div className="space-y-5">
+      {showScanner && (
+        <BarcodeScanner
+          onAdd={handleScanAdd}
+          onClose={() => setShowScanner(false)}
+        />
+      )}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">{t('food_title')}</h1>
           <p className="text-slate-400 text-sm mt-0.5">{new Date().toLocaleDateString()} — {totalCal.toLocaleString()} {t('food_subtitle_kcal')}</p>
         </div>
-        <button onClick={() => { setShowForm(!showForm); setAiInput(''); setAiError(''); }}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-          {t('food_add_btn')}
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setShowScanner(true)}
+            className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-sm font-medium px-3 py-2 rounded-lg transition-colors"
+            title={t('scan_btn')}>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v1m0 14v1M4 12h1m14 0h1m-2.05-7.95-.7.7M6.75 17.25l-.7.7M17.25 17.25l.7.7M6.75 6.75l-.7-.7M12 8a4 4 0 100 8 4 4 0 000-8z" />
+            </svg>
+            <span className="hidden sm:inline">{t('scan_btn')}</span>
+          </button>
+          <button onClick={() => { setShowForm(!showForm); setAiInput(''); setAiError(''); }}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+            {t('food_add_btn')}
+          </button>
+        </div>
       </div>
 
       {/* AI Quick Log */}
