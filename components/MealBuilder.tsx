@@ -15,7 +15,7 @@ type BuilderItem = {
 };
 
 type Props = {
-  onLog: (meal: { name: string; calories: number; protein: number | null; carbs: number | null; fat: number | null; mealType: MealType }) => void;
+  onLog: (meal: { name: string; calories: number; protein: number | null; carbs: number | null; fat: number | null; mealType: MealType; ingredients: BuilderItem[] }) => void;
   onClose: () => void;
 };
 
@@ -81,7 +81,7 @@ export default function MealBuilder({ onLog, onClose }: Props) {
   function handleLog() {
     if (items.length === 0) return;
     const name = mealName.trim() || 'Homemade meal';
-    onLog({ name, calories: totalCal, protein: totalProtein, carbs: totalCarbs, fat: totalFat, mealType });
+    onLog({ name, calories: totalCal, protein: totalProtein, carbs: totalCarbs, fat: totalFat, mealType, ingredients: items });
     onClose();
   }
 

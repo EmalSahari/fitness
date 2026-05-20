@@ -32,15 +32,24 @@ export interface UserStats {
   updated_at: string;
 }
 
+export interface FoodIngredient {
+  name: string;
+  calories: number;
+  protein: number | null;
+  carbs: number | null;
+  fat: number | null;
+}
+
 export interface FoodEntry {
   id: string;
   user_id: string;
   name: string;
   calories: number;
   meal_type: MealType;
-  protein?: number;
-  carbs?: number;
-  fat?: number;
+  protein?: number | null;
+  carbs?: number | null;
+  fat?: number | null;
+  ingredients?: FoodIngredient[] | null;
   date: string;
   created_at: string;
 }
