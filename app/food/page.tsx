@@ -63,6 +63,7 @@ export default function FoodPage() {
   const [editIngParsing, setEditIngParsing] = useState(false);
   const [editIngError, setEditIngError] = useState('');
   const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState('');
 
   useEffect(() => {
     if (authLoading) return;
@@ -189,6 +190,7 @@ export default function FoodPage() {
     setEditIngredients(ings);
     setEditIngInput('');
     setEditIngError('');
+    setEditError('');
     setEditForm({
       name: entry.name,
       calories: String(entry.calories),
@@ -254,7 +256,9 @@ export default function FoodPage() {
     const cal = parseInt(editForm.calories, 10);
     if (!editForm.name.trim() || isNaN(cal)) return;
     setEditSaving(true);
-    const updated = {
+    setEditError('');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updated: Record<string, any> = {
       name: editForm.name.trim(),
       calories: cal,
       meal_type: editForm.mealType,
@@ -263,8 +267,19 @@ export default function FoodPage() {
       fat: editForm.fat ? parseFloat(editForm.fat) : null,
       ingredients: editIngredients.length > 0 ? editIngredients : null,
     };
-    await supabase.from('food_entries').update(updated).eq('id', editingEntry.id);
-    setEntries(prev => prev.map(e => e.id === editingEntry.id ? { ...e, ...updated } : e));
+    const { data: saved, error } = await supabase
+      .from('food_entries')
+      .update(updated)
+      .eq('id', editingEntry.id)
+      .eq('user_id', user!.id)
+      .select()
+      .single();
+    if (error) {
+      setEditError(`Save failed: ${error.message}`);
+      setEditSaving(false);
+      return;
+    }
+    setEntries(prev => prev.map(e => e.id === editingEntry.id ? (saved as FoodEntry) : e));
     setEditingEntry(null);
     setEditSaving(false);
   }
@@ -388,7 +403,9 @@ export default function FoodPage() {
             </div>
 
             {/* Footer */}
-            <div className="px-5 py-4 border-t border-slate-800 flex gap-2 flex-shrink-0">
+            <div className="px-5 py-4 border-t border-slate-800 flex-shrink-0 space-y-2">
+              {editError && <p className="text-red-400 text-xs bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{editError}</p>}
+              <div className="flex gap-2">
               <button type="submit" form="edit-form" disabled={editSaving}
                 className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 text-white text-sm font-medium py-2.5 rounded-xl transition-colors">
                 {editSaving ? '…' : 'Save changes'}
@@ -397,6 +414,7 @@ export default function FoodPage() {
                 className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white text-sm rounded-xl transition-colors">
                 Cancel
               </button>
+              </div>
             </div>
           </div>
         </div>
