@@ -61,6 +61,7 @@ export default function MealBuilder({ onLog, onClose }: Props) {
       const data = await res.json();
       if (!res.ok || data.error) {
         setParseError(data.error ?? 'Could not estimate nutrition.');
+        setParsing(false);
         return;
       }
       addItem({

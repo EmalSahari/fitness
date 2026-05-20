@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
         role: 'system',
         content: `You are a precise nutrition calculator. The user describes food or drinks in any language (including Danish).
 
-IMPORTANT: If the input is not a food or drink description (e.g. a question, code, or gibberish), return exactly: {"error":"not_food"}
+IMPORTANT: Only return {"error":"not_food"} if the input is clearly NOT food — e.g. a programming question, random letters, or obvious nonsense. When in doubt, treat it as food. Common Danish food words include: hvidløg (garlic), løg (onion), kylling (chicken), oksekød (beef), smør (butter), mælk (milk), æg (egg), kartofler (potatoes), gulerødder (carrots), porre (leek), fløde (cream), ost (cheese), brød (bread), and many more.
 
 Otherwise return a JSON object with:
 - name: descriptive name with quantity (e.g. "Homemade pasta bolognese (1 serving)", "3x Spicy Chicken Taquito (7-Eleven)")
