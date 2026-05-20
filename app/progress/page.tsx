@@ -19,6 +19,13 @@ const insightStyles = {
   suggestion: { border: 'border-blue-500/30',    bg: 'bg-blue-500/8',   icon: '💡', label: 'text-blue-400' },
 };
 
+function getBmiCategory(bmi: number): { label: string; color: string } {
+  if (bmi < 18.5) return { label: 'Underweight', color: 'text-blue-400' };
+  if (bmi < 25)   return { label: 'Healthy', color: 'text-green-400' };
+  if (bmi < 30)   return { label: 'Overweight', color: 'text-amber-400' };
+  return { label: 'Obese', color: 'text-red-400' };
+}
+
 function WeightChart({ entries }: { entries: WeightEntry[] }) {
   if (entries.length < 2) return null;
   const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date)).slice(-20);
@@ -192,7 +199,10 @@ export default function ProgressPage() {
   const [weightEntries, setWeightEntries] = useState<WeightEntry[]>([]);
   const [foodEntries, setFoodEntries] = useState<FoodEntry[]>([]);
   const [workoutEntries, setWorkoutEntries] = useState<WorkoutEntry[]>([]);
-  const [userStats, setUserStats] = useState<{ goal?: string; custom_goal_text?: string } | null>(null);
+  const [userStats, setUserStats] = useState<{ goal?: string; custom_goal_text?: string; height_cm?: number } | null>(null);
+  const [goalWeight, setGoalWeight] = useState<number | null>(null);
+  const [goalInput, setGoalInput] = useState('');
+  const [editingGoal, setEditingGoal] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const [showWeightForm, setShowWeightForm] = useState(false);
@@ -214,7 +224,7 @@ export default function ProgressPage() {
       supabase.from('weight_entries').select('*').eq('user_id', user.id).order('date', { ascending: false }).limit(weightLimit),
       supabase.from('food_entries').select('*').eq('user_id', user.id).gte('date', startDate).lte('date', today),
       supabase.from('workout_entries').select('*').eq('user_id', user.id).gte('date', startDate).lte('date', today),
-      supabase.from('user_stats').select('goal, custom_goal_text').eq('user_id', user.id).single(),
+      supabase.from('user_stats').select('goal, custom_goal_text, height_cm').eq('user_id', user.id).maybeSingle(),
     ]);
     setWeightEntries((w.data ?? []) as WeightEntry[]);
     setFoodEntries((f.data ?? []) as FoodEntry[]);
@@ -226,6 +236,8 @@ export default function ProgressPage() {
   useEffect(() => {
     if (authLoading) return;
     if (!user) { setLoading(false); return; }
+    const stored = localStorage.getItem(`goal_weight_${user.id}`);
+    if (stored) setGoalWeight(parseFloat(stored));
     fetchData();
   }, [user, authLoading, fetchData]);
 
@@ -234,6 +246,15 @@ export default function ProgressPage() {
     setInsights([]);
     setInsightsFetched(false);
   }, [period]);
+
+  function saveGoal() {
+    const val = parseFloat(goalInput);
+    if (isNaN(val) || val < 30 || val > 300) return;
+    setGoalWeight(val);
+    localStorage.setItem(`goal_weight_${user!.id}`, String(val));
+    setEditingGoal(false);
+    setGoalInput('');
+  }
 
   async function logWeight() {
     const kg = parseFloat(weightInput);
@@ -280,6 +301,26 @@ export default function ProgressPage() {
   const earliest = sorted[0] ?? null;
   const weightChange = latest && earliest && latest.id !== earliest.id
     ? (Number(latest.weight_kg) - Number(earliest.weight_kg)) : null;
+
+  const heightCm = userStats?.height_cm ?? null;
+  const bmi = latest && heightCm ? Number(latest.weight_kg) / Math.pow(heightCm / 100, 2) : null;
+  const bmiCat = bmi ? getBmiCategory(bmi) : null;
+
+  const trendEntries = weightEntries.slice(0, 8);
+  let weeklyTrend: number | null = null;
+  if (trendEntries.length >= 2) {
+    const newest = trendEntries[0];
+    const oldest = trendEntries[trendEntries.length - 1];
+    const daysDiff = (new Date(newest.date).getTime() - new Date(oldest.date).getTime()) / (1000 * 60 * 60 * 24);
+    if (daysDiff > 0) weeklyTrend = ((Number(newest.weight_kg) - Number(oldest.weight_kg)) / daysDiff) * 7;
+  }
+
+  let weeksToGoal: number | null = null;
+  if (goalWeight !== null && latest && weeklyTrend !== null && weeklyTrend !== 0) {
+    const diff = goalWeight - Number(latest.weight_kg);
+    const weeks = diff / weeklyTrend;
+    if (weeks > 0) weeksToGoal = Math.round(weeks);
+  }
 
   const dayCalMap: Record<string, number> = {};
   foodEntries.forEach(e => { dayCalMap[e.date] = (dayCalMap[e.date] ?? 0) + e.calories; });
@@ -370,6 +411,68 @@ export default function ProgressPage() {
           </p>
         )}
       </div>
+
+      {/* BMI + Weight goal */}
+      {(bmi || goalWeight !== null || latest) && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {bmi && bmiCat && (
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+              <p className="text-xs text-slate-400 mb-2">Body Mass Index</p>
+              <div className="flex items-end gap-2">
+                <span className="text-3xl font-bold text-white">{bmi.toFixed(1)}</span>
+                <span className={`text-sm font-medium mb-0.5 ${bmiCat.color}`}>{bmiCat.label}</span>
+              </div>
+              <div className="mt-3 h-1.5 rounded-full bg-slate-800 overflow-hidden flex">
+                <div className="flex-1 bg-blue-400 rounded-l-full" />
+                <div className="flex-[2.5] bg-green-400" />
+                <div className="flex-[2] bg-amber-400" />
+                <div className="flex-[2] bg-red-400 rounded-r-full" />
+              </div>
+              <div className="relative mt-1" style={{ paddingLeft: `${Math.min(Math.max((bmi - 10) / 30 * 100, 0), 98)}%` }}>
+                <div className="w-1 h-2 bg-white rounded-full" />
+              </div>
+              <p className="text-xs text-slate-600 mt-1">Based on your height in profile</p>
+            </div>
+          )}
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs text-slate-400">Weight goal</p>
+              <button onClick={() => { setEditingGoal(true); setGoalInput(goalWeight ? String(goalWeight) : ''); }}
+                className="text-xs text-blue-400 hover:text-blue-300 transition-colors">
+                {goalWeight ? 'Edit' : 'Set goal'}
+              </button>
+            </div>
+            {editingGoal ? (
+              <div className="flex gap-2">
+                <input type="number" value={goalInput} onChange={e => setGoalInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && saveGoal()}
+                  placeholder="e.g. 75" step={0.5} min={30} max={300} autoFocus
+                  className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500" />
+                <button onClick={saveGoal} className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium px-3 rounded-lg transition-colors">Save</button>
+                <button onClick={() => setEditingGoal(false)} className="text-slate-500 hover:text-white text-xs px-2 transition-colors">✕</button>
+              </div>
+            ) : goalWeight !== null && latest ? (
+              <>
+                <div className="flex items-end gap-2">
+                  <span className="text-3xl font-bold text-white">{goalWeight}</span>
+                  <span className="text-sm text-slate-400 mb-0.5">kg target</span>
+                </div>
+                <p className={`text-sm font-medium mt-1 ${Number(latest.weight_kg) > goalWeight ? 'text-amber-400' : 'text-green-400'}`}>
+                  {Math.abs(Number(latest.weight_kg) - goalWeight).toFixed(1)} kg {Number(latest.weight_kg) > goalWeight ? 'to lose' : 'below goal 🎉'}
+                </p>
+                {weeksToGoal !== null && (
+                  <p className="text-xs text-slate-500 mt-1">~{weeksToGoal} weeks at current trend</p>
+                )}
+                {weeklyTrend !== null && weeksToGoal === null && Number(latest.weight_kg) > goalWeight && (
+                  <p className="text-xs text-slate-500 mt-1">{weeklyTrend > 0 ? 'Trending away from goal' : 'Not enough data yet'}</p>
+                )}
+              </>
+            ) : (
+              <p className="text-sm text-slate-600 mt-1">Set a target weight to track your progress.</p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Calories chart */}
       <div className="bg-slate-900 rounded-xl p-5" style={{ border: '1px solid rgba(34,197,94,0.15)', boxShadow: '0 0 20px rgba(34,197,94,0.04)' }}>
