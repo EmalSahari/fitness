@@ -216,13 +216,13 @@ export default function MealBuilder({ onLog, onClose }: Props) {
                 </svg>
               </button>
             </div>
-            {parseError && <p className="text-red-400 text-xs">{parseError}</p>}
+            {parseError && <p className="text-red-400 text-xs break-all">{parseError}</p>}
           </div>
         </div>
 
         {/* Footer */}
         <div className="px-5 py-4 border-t border-slate-800 flex-shrink-0 space-y-2">
-          {logError && <p className="text-red-400 text-xs text-center">{logError}</p>}
+          {logError && <p className="text-red-400 text-xs text-center break-all">{logError}</p>}
           <button onClick={handleLog} disabled={items.length === 0 || logging}
             className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-500 text-white font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2">
             {logging

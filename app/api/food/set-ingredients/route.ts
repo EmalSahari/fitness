@@ -4,7 +4,12 @@ import postgres from 'postgres';
 
 let _sql: ReturnType<typeof postgres> | null = null;
 function getDb() {
-  if (!_sql) _sql = postgres(process.env.DATABASE_URL!, { max: 3 });
+  if (!_sql) _sql = postgres(process.env.DATABASE_URL!, {
+    max: 1,
+    ssl: { rejectUnauthorized: false },
+    connect_timeout: 15,
+    idle_timeout: 20,
+  });
   return _sql;
 }
 
