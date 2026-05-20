@@ -6,6 +6,13 @@ import { createClient } from '@/lib/supabase/client';
 import { getTodayDate } from '@/lib/utils';
 import type { WeightEntry } from '@/lib/types';
 
+function getBmiCategory(bmi: number): { label: string; color: string } {
+  if (bmi < 18.5) return { label: 'Underweight', color: 'text-blue-400' };
+  if (bmi < 25)   return { label: 'Healthy', color: 'text-green-400' };
+  if (bmi < 30)   return { label: 'Overweight', color: 'text-amber-400' };
+  return { label: 'Obese', color: 'text-red-400' };
+}
+
 export default function WeightPage() {
   const { user, loading: authLoading, t } = useAuth();
   const supabase = createClient();
@@ -19,14 +26,36 @@ export default function WeightPage() {
   const [dateInput, setDateInput] = useState(today);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [heightCm, setHeightCm] = useState<number | null>(null);
+  const [goalWeight, setGoalWeight] = useState<number | null>(null);
+  const [goalInput, setGoalInput] = useState('');
+  const [editingGoal, setEditingGoal] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
     if (!user) { setLoading(false); return; }
-    supabase.from('weight_entries').select('*').eq('user_id', user.id)
-      .order('date', { ascending: false })
-      .then(({ data }) => { setEntries((data ?? []) as WeightEntry[]); setLoading(false); });
+    // Load goal from localStorage
+    const stored = localStorage.getItem(`goal_weight_${user.id}`);
+    if (stored) setGoalWeight(parseFloat(stored));
+
+    Promise.all([
+      supabase.from('weight_entries').select('*').eq('user_id', user.id).order('date', { ascending: false }),
+      supabase.from('user_stats').select('height_cm').eq('user_id', user.id).single(),
+    ]).then(([weightRes, statsRes]) => {
+      setEntries((weightRes.data ?? []) as WeightEntry[]);
+      if (statsRes.data?.height_cm) setHeightCm(statsRes.data.height_cm);
+      setLoading(false);
+    });
   }, [user, authLoading]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function saveGoal() {
+    const val = parseFloat(goalInput);
+    if (isNaN(val) || val < 30 || val > 300) return;
+    setGoalWeight(val);
+    localStorage.setItem(`goal_weight_${user!.id}`, String(val));
+    setEditingGoal(false);
+    setGoalInput('');
+  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -54,6 +83,28 @@ export default function WeightPage() {
   const latest = entries[0];
   const first = entries.length > 1 ? entries[entries.length - 1] : null;
   const totalChange = latest && first ? (latest.weight_kg - first.weight_kg) : null;
+
+  // BMI
+  const bmi = latest && heightCm ? latest.weight_kg / Math.pow(heightCm / 100, 2) : null;
+  const bmiCat = bmi ? getBmiCategory(bmi) : null;
+
+  // Weekly trend (kg/week) from last 8 entries
+  const trendEntries = entries.slice(0, 8);
+  let weeklyTrend: number | null = null;
+  if (trendEntries.length >= 2) {
+    const newest = trendEntries[0];
+    const oldest = trendEntries[trendEntries.length - 1];
+    const daysDiff = (new Date(newest.date).getTime() - new Date(oldest.date).getTime()) / (1000 * 60 * 60 * 24);
+    if (daysDiff > 0) weeklyTrend = ((newest.weight_kg - oldest.weight_kg) / daysDiff) * 7;
+  }
+
+  // Goal projection
+  let weeksToGoal: number | null = null;
+  if (goalWeight !== null && latest && weeklyTrend !== null && weeklyTrend !== 0) {
+    const diff = goalWeight - latest.weight_kg;
+    const weeks = diff / weeklyTrend;
+    if (weeks > 0) weeksToGoal = Math.round(weeks);
+  }
 
   // Build chart data (last 30 entries)
   const chartData = [...entries].reverse().slice(-30);
@@ -98,6 +149,74 @@ export default function WeightPage() {
             <p className="text-xs text-slate-400 mb-1">Total logs</p>
             <p className="text-2xl font-bold text-violet-400">{entries.length}</p>
             <p className="text-xs text-slate-500">weigh-ins</p>
+          </div>
+        </div>
+      )}
+
+      {/* BMI + Goal */}
+      {(bmi || goalWeight !== null || latest) && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* BMI */}
+          {bmi && bmiCat && (
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+              <p className="text-xs text-slate-400 mb-2">Body Mass Index</p>
+              <div className="flex items-end gap-2">
+                <span className="text-3xl font-bold text-white">{bmi.toFixed(1)}</span>
+                <span className={`text-sm font-medium mb-0.5 ${bmiCat.color}`}>{bmiCat.label}</span>
+              </div>
+              {/* BMI bar */}
+              <div className="mt-3 h-1.5 rounded-full bg-slate-800 overflow-hidden flex">
+                <div className="flex-1 bg-blue-400 rounded-l-full" />
+                <div className="flex-[2.5] bg-green-400" />
+                <div className="flex-[2] bg-amber-400" />
+                <div className="flex-[2] bg-red-400 rounded-r-full" />
+              </div>
+              <div className="relative mt-1" style={{ paddingLeft: `${Math.min(Math.max((bmi - 10) / 30 * 100, 0), 98)}%` }}>
+                <div className="w-1 h-2 bg-white rounded-full" />
+              </div>
+              <p className="text-xs text-slate-600 mt-1">Based on your height in profile</p>
+            </div>
+          )}
+
+          {/* Weight goal */}
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs text-slate-400">Weight goal</p>
+              <button onClick={() => { setEditingGoal(true); setGoalInput(goalWeight ? String(goalWeight) : ''); }}
+                className="text-xs text-blue-400 hover:text-blue-300 transition-colors">
+                {goalWeight ? 'Edit' : 'Set goal'}
+              </button>
+            </div>
+            {editingGoal ? (
+              <div className="flex gap-2">
+                <input type="number" value={goalInput} onChange={e => setGoalInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && saveGoal()}
+                  placeholder="e.g. 75" step={0.5} min={30} max={300} autoFocus
+                  className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500" />
+                <button onClick={saveGoal} className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium px-3 rounded-lg transition-colors">Save</button>
+                <button onClick={() => setEditingGoal(false)} className="text-slate-500 hover:text-white text-xs px-2 transition-colors">✕</button>
+              </div>
+            ) : goalWeight !== null && latest ? (
+              <>
+                <div className="flex items-end gap-2">
+                  <span className="text-3xl font-bold text-white">{goalWeight}</span>
+                  <span className="text-sm text-slate-400 mb-0.5">kg target</span>
+                </div>
+                <p className={`text-sm font-medium mt-1 ${latest.weight_kg > goalWeight ? 'text-amber-400' : 'text-green-400'}`}>
+                  {Math.abs(latest.weight_kg - goalWeight).toFixed(1)} kg {latest.weight_kg > goalWeight ? 'to lose' : 'below goal 🎉'}
+                </p>
+                {weeksToGoal !== null && (
+                  <p className="text-xs text-slate-500 mt-1">~{weeksToGoal} weeks at current trend</p>
+                )}
+                {weeklyTrend !== null && weeksToGoal === null && latest.weight_kg > goalWeight && (
+                  <p className="text-xs text-slate-500 mt-1">
+                    {weeklyTrend > 0 ? 'Trending away from goal' : 'Not enough data yet'}
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="text-sm text-slate-600 mt-1">Set a target weight to track your progress.</p>
+            )}
           </div>
         </div>
       )}
