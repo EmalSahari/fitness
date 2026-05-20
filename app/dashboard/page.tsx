@@ -362,6 +362,9 @@ export default function DashboardPage() {
         )}
       </div>
 
+      {/* Push notification nudge */}
+      <NotifNudge />
+
       {/* Weight + calorie goal */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
@@ -393,6 +396,47 @@ export default function DashboardPage() {
             <span className="text-sm text-slate-400">{t('dash_kcal_per_day')}</span>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function NotifNudge() {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    // Only show if: push is supported, not already enabled/denied, and not dismissed before
+    if (!('Notification' in window) || !('PushManager' in window) || !('serviceWorker' in navigator)) return;
+    if (Notification.permission === 'denied') return;
+    if (localStorage.getItem('notif-nudge-dismissed')) return;
+
+    navigator.serviceWorker.ready.then(reg =>
+      reg.pushManager.getSubscription().then(sub => {
+        if (!sub) setVisible(true);
+      })
+    ).catch(() => {});
+  }, []);
+
+  if (!visible) return null;
+
+  return (
+    <div className="flex items-center gap-3 bg-blue-600/10 border border-blue-500/25 rounded-xl px-4 py-3">
+      <span className="text-xl flex-shrink-0">🔔</span>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-white">Get daily reminders</p>
+        <p className="text-xs text-slate-400 mt-0.5">Morning nudge + evening calorie check-in</p>
+      </div>
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <Link href="/account" className="text-xs font-semibold text-blue-400 hover:text-blue-300 transition-colors px-3 py-1.5 bg-blue-500/15 rounded-lg">
+          Turn on
+        </Link>
+        <button
+          onClick={() => { localStorage.setItem('notif-nudge-dismissed', '1'); setVisible(false); }}
+          className="text-slate-500 hover:text-slate-300 transition-colors p-1">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
       </div>
     </div>
   );

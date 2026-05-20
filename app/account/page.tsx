@@ -335,8 +335,23 @@ function NotificationToggle({ t }: { t: (k: TranslationKey) => string }) {
   async function toggle() {
     setLoading(true);
     setErrorMsg('');
+
+    // Check VAPID key immediately — no point waiting for SW if it's missing
+    const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    if (!vapidKey) {
+      setErrorMsg('Not configured — add NEXT_PUBLIC_VAPID_PUBLIC_KEY to Vercel env vars, then redeploy.');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const reg = await navigator.serviceWorker.ready;
+      // serviceWorker.ready can hang if SW is stuck — cap at 8s
+      const swReady = Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Service worker timed out. Try reloading the page.')), 8000)),
+      ]) as Promise<ServiceWorkerRegistration>;
+
+      const reg = await swReady;
       const existing = await reg.pushManager.getSubscription();
 
       if (existing) {
@@ -344,17 +359,10 @@ function NotificationToggle({ t }: { t: (k: TranslationKey) => string }) {
         await fetch('/api/push/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: null }) });
         setStatus('idle');
       } else {
-        const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-        if (!vapidKey) {
-          setErrorMsg('Not configured — add NEXT_PUBLIC_VAPID_PUBLIC_KEY to Vercel env vars, then redeploy.');
-          setLoading(false);
-          return;
-        }
-
         const permission = await Notification.requestPermission();
         if (permission === 'denied') { setStatus('denied'); setLoading(false); return; }
         if (permission !== 'granted') {
-          setErrorMsg('Permission was not granted. Please allow notifications in your browser settings.');
+          setErrorMsg('Permission not granted. Allow notifications in browser settings and try again.');
           setLoading(false);
           return;
         }
@@ -368,7 +376,7 @@ function NotificationToggle({ t }: { t: (k: TranslationKey) => string }) {
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      setErrorMsg(`Failed to enable: ${msg}`);
+      setErrorMsg(msg);
     }
     setLoading(false);
   }
