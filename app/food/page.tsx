@@ -165,9 +165,10 @@ export default function FoodPage() {
     await supabase.from('food_entries').delete().eq('id', id);
   }
 
-  async function handleLogFood(food: LogFood) {
+  async function handleLogFood(food: LogFood): Promise<boolean> {
     setSaving(true);
-    const newEntry = {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const newEntry: Record<string, any> = {
       user_id: user!.id,
       name: food.name,
       calories: food.calories,
@@ -176,11 +177,30 @@ export default function FoodPage() {
       carbs: food.carbs,
       fat: food.fat,
       date: today,
-      ingredients: food.ingredients && food.ingredients.length > 0 ? food.ingredients : null,
     };
-    const { data } = await supabase.from('food_entries').insert(newEntry).select().single();
-    if (data) setEntries(prev => [data as FoodEntry, ...prev]);
+    // Add ingredients separately so a missing column doesn't silently kill the whole insert
+    if (food.ingredients && food.ingredients.length > 0) {
+      newEntry.ingredients = food.ingredients;
+    }
+    const { data, error } = await supabase.from('food_entries').insert(newEntry).select().single();
     setSaving(false);
+    if (error) {
+      // If ingredients column is missing, retry without it
+      if (error.message?.includes('ingredients') || error.code === '42703') {
+        const { data: data2, error: error2 } = await supabase
+          .from('food_entries')
+          .insert({ ...newEntry, ingredients: undefined })
+          .select().single();
+        if (error2) { setAiError(`Failed to save: ${error2.message}`); return false; }
+        if (data2) setEntries(prev => [data2 as FoodEntry, ...prev]);
+        setAiError('Ingredients not saved — run the SQL migration in Supabase to enable this feature.');
+        return true;
+      }
+      setAiError(`Failed to save: ${error.message}`);
+      return false;
+    }
+    if (data) setEntries(prev => [data as FoodEntry, ...prev]);
+    return true;
   }
 
   function openEdit(entry: FoodEntry, e: React.MouseEvent) {

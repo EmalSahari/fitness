@@ -15,7 +15,7 @@ type BuilderItem = {
 };
 
 type Props = {
-  onLog: (meal: { name: string; calories: number; protein: number | null; carbs: number | null; fat: number | null; mealType: MealType; ingredients: BuilderItem[] }) => void;
+  onLog: (meal: { name: string; calories: number; protein: number | null; carbs: number | null; fat: number | null; mealType: MealType; ingredients: BuilderItem[] }) => Promise<boolean>;
   onClose: () => void;
 };
 
@@ -31,6 +31,8 @@ export default function MealBuilder({ onLog, onClose }: Props) {
   const [parsing, setParsing] = useState(false);
   const [parseError, setParseError] = useState('');
   const [showScanner, setShowScanner] = useState(false);
+  const [logging, setLogging] = useState(false);
+  const [logError, setLogError] = useState('');
 
   const totalCal = items.reduce((s, i) => s + i.calories, 0);
   const totalProtein = items.some(i => i.protein != null)
@@ -78,11 +80,18 @@ export default function MealBuilder({ onLog, onClose }: Props) {
     setParsing(false);
   }
 
-  function handleLog() {
+  async function handleLog() {
     if (items.length === 0) return;
+    setLogging(true);
+    setLogError('');
     const name = mealName.trim() || 'Homemade meal';
-    onLog({ name, calories: totalCal, protein: totalProtein, carbs: totalCarbs, fat: totalFat, mealType, ingredients: items });
-    onClose();
+    const ok = await onLog({ name, calories: totalCal, protein: totalProtein, carbs: totalCarbs, fat: totalFat, mealType, ingredients: items });
+    if (ok) {
+      onClose();
+    } else {
+      setLogError('Failed to save meal. Please try again.');
+      setLogging(false);
+    }
   }
 
   if (showScanner) {
@@ -212,10 +221,14 @@ export default function MealBuilder({ onLog, onClose }: Props) {
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-4 border-t border-slate-800 flex-shrink-0">
-          <button onClick={handleLog} disabled={items.length === 0}
-            className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-500 text-white font-semibold py-3 rounded-xl transition-colors">
-            {items.length === 0 ? 'Add at least one ingredient' : `Log meal · ${totalCal} kcal`}
+        <div className="px-5 py-4 border-t border-slate-800 flex-shrink-0 space-y-2">
+          {logError && <p className="text-red-400 text-xs text-center">{logError}</p>}
+          <button onClick={handleLog} disabled={items.length === 0 || logging}
+            className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-500 text-white font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2">
+            {logging
+              ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving…</>
+              : items.length === 0 ? 'Add at least one ingredient' : `Log meal · ${totalCal} kcal`
+            }
           </button>
         </div>
       </div>
