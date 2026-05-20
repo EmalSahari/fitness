@@ -178,25 +178,13 @@ export default function FoodPage() {
       fat: food.fat,
       date: today,
     };
-    // Add ingredients separately so a missing column doesn't silently kill the whole insert
     if (food.ingredients && food.ingredients.length > 0) {
       newEntry.ingredients = food.ingredients;
     }
     const { data, error } = await supabase.from('food_entries').insert(newEntry).select().single();
     setSaving(false);
     if (error) {
-      // If ingredients column is missing, retry without it
-      if (error.message?.includes('ingredients') || error.code === '42703') {
-        const { data: data2, error: error2 } = await supabase
-          .from('food_entries')
-          .insert({ ...newEntry, ingredients: undefined })
-          .select().single();
-        if (error2) { setAiError(`Failed to save: ${error2.message}`); return false; }
-        if (data2) setEntries(prev => [data2 as FoodEntry, ...prev]);
-        setAiError('Ingredients not saved — run the SQL migration in Supabase to enable this feature.');
-        return true;
-      }
-      setAiError(`Failed to save: ${error.message}`);
+      setAiError(`Failed to save: [${error.code}] ${error.message}`);
       return false;
     }
     if (data) setEntries(prev => [data as FoodEntry, ...prev]);
@@ -277,15 +265,13 @@ export default function FoodPage() {
     if (!editForm.name.trim() || isNaN(cal)) return;
     setEditSaving(true);
     setEditError('');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const updated: Record<string, any> = {
+    const updated = {
       name: editForm.name.trim(),
       calories: cal,
       meal_type: editForm.mealType,
       protein: editForm.protein ? parseFloat(editForm.protein) : null,
       carbs: editForm.carbs ? parseFloat(editForm.carbs) : null,
       fat: editForm.fat ? parseFloat(editForm.fat) : null,
-      ingredients: editIngredients.length > 0 ? editIngredients : null,
     };
     const { data: saved, error } = await supabase
       .from('food_entries')
@@ -299,7 +285,9 @@ export default function FoodPage() {
       setEditSaving(false);
       return;
     }
-    setEntries(prev => prev.map(e => e.id === editingEntry.id ? (saved as FoodEntry) : e));
+    setEntries(prev => prev.map(e =>
+      e.id === editingEntry.id ? { ...saved, ingredients: editIngredients.length > 0 ? editIngredients : null } as FoodEntry : e
+    ));
     setEditingEntry(null);
     setEditSaving(false);
   }
