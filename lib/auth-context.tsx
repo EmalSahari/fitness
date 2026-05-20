@@ -31,7 +31,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [language, setLangState] = useState<Language>('en');
+  const [language, setLangState] = useState<Language>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('fittrack_lang') as Language) ?? 'en';
+    }
+    return 'en';
+  });
   const router = useRouter();
   const supabase = createClient();
 
@@ -43,7 +48,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const result = await Promise.race([query, timeout]);
         if (result && 'data' in result && result.data && !result.error) {
           setProfile(result.data as Profile);
-          setLangState((result.data as Profile).language as Language);
+          const lang = (result.data as Profile).language as Language;
+          setLangState(lang);
+          localStorage.setItem('fittrack_lang', lang);
         }
       } catch {
         // profile stays null — page will handle gracefully
@@ -87,6 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const setLanguage = useCallback(
     async (lang: Language) => {
       setLangState(lang);
+      localStorage.setItem('fittrack_lang', lang);
       if (user) {
         await supabase
           .from('profiles')

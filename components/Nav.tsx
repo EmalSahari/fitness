@@ -130,29 +130,35 @@ export default function Nav() {
           })}
         </nav>
 
-        {/* Bottom: language + user */}
-        <div className="px-3 py-4 border-t border-slate-800 space-y-2">
-          {/* Language toggle */}
-          <button onClick={() => setLanguage(otherLang)}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">
-            <span className="text-base">{language === 'en' ? '🇩🇰' : '🇬🇧'}</span>
-            <span>{language === 'en' ? 'Dansk' : 'English'}</span>
-          </button>
-
-          {/* User info + sign out */}
-          {profile && (
-            <div className="px-3 py-2 rounded-lg bg-slate-800/50">
-              <p className="text-xs font-medium text-slate-300 truncate">{profile.name || user?.email}</p>
-              <p className="text-xs text-slate-500 truncate">{user?.email}</p>
+        {/* Bottom: user + actions */}
+        <div className="px-3 py-3 border-t border-slate-800">
+          <div className="flex items-center gap-2 px-2 py-2">
+            {/* Avatar initial */}
+            <div className="w-7 h-7 rounded-full bg-blue-600/30 border border-blue-500/30 flex items-center justify-center flex-shrink-0">
+              <span className="text-xs font-bold text-blue-300">
+                {(profile?.name || user?.email || '?')[0].toUpperCase()}
+              </span>
             </div>
-          )}
-          <button onClick={signOut}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-            {t('nav_signout')}
-          </button>
+            {/* Name + email */}
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-slate-300 truncate leading-tight">{profile?.name || user?.email}</p>
+              {profile?.name && <p className="text-[10px] text-slate-600 truncate leading-tight">{user?.email}</p>}
+            </div>
+            {/* Language flag */}
+            <button onClick={() => setLanguage(otherLang)}
+              title={language === 'en' ? 'Switch to Dansk' : 'Switch to English'}
+              className="text-base hover:scale-110 transition-transform flex-shrink-0 px-1">
+              {language === 'en' ? '🇩🇰' : '🇬🇧'}
+            </button>
+            {/* Sign out */}
+            <button onClick={signOut}
+              title={t('nav_signout')}
+              className="text-slate-600 hover:text-red-400 transition-colors flex-shrink-0 px-1">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+            </button>
+          </div>
         </div>
       </aside>
 
