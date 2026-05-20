@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   plan        TEXT NOT NULL DEFAULT 'free' CHECK (plan IN ('free', 'pro')),
   calorie_goal  INTEGER NOT NULL DEFAULT 2000,
   protein_goal  INTEGER NOT NULL DEFAULT 150,
+  coach_memory  TEXT NOT NULL DEFAULT '',
   onboarded   BOOLEAN NOT NULL DEFAULT false,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -100,3 +101,16 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION handle_new_user();
+
+-- Feedback
+CREATE TABLE IF NOT EXISTS feedback (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  rating     INTEGER CHECK (rating BETWEEN 1 AND 5),
+  message    TEXT NOT NULL,
+  page       TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE feedback ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "insert_own_feedback" ON feedback FOR INSERT WITH CHECK (auth.uid() = user_id OR user_id IS NULL);
+CREATE POLICY "read_own_feedback"   ON feedback FOR SELECT USING (auth.uid() = user_id);

@@ -13,6 +13,7 @@ export interface Profile {
   plan: Plan;
   calorie_goal: number;
   protein_goal: number;
+  coach_memory: string;
   onboarded: boolean;
   created_at: string;
   updated_at: string;

@@ -243,6 +243,17 @@ const da: Record<TranslationKey, string> = {
   prog_latest_badge: 'Seneste',
   prog_save: 'Gem',
 
+  // Feedback
+  feedback_btn: 'Feedback',
+  feedback_title: 'Del feedback',
+  feedback_subtitle: 'Hvad virker? Hvad kan gøres bedre?',
+  feedback_placeholder: 'Fortæl os hvad du synes…',
+  feedback_rating_label: 'Hvordan vil du vurdere FitTrack?',
+  feedback_submit: 'Send feedback',
+  feedback_sending: 'Sender…',
+  feedback_thanks: 'Tak! Din feedback hjælper meget.',
+  feedback_error: 'Noget gik galt. Prøv igen.',
+
   // Account / Settings
   acc_title: 'Konto og mål',
   acc_subtitle: 'Opdater din profil, kropsdata og mål',

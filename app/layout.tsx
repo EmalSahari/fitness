@@ -4,6 +4,7 @@ import { AuthProvider } from '@/lib/auth-context';
 import Nav from '@/components/Nav';
 import MainLayout from '@/components/MainLayout';
 import RegisterSW from '@/components/RegisterSW';
+import FeedbackButton from '@/components/FeedbackButton';
 
 export const metadata: Metadata = {
   title: 'FitTrack',
@@ -36,6 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div className="flex min-h-screen">
             <Nav />
             <MainLayout>{children}</MainLayout>
+            <FeedbackButton />
           </div>
         </AuthProvider>
       </body>

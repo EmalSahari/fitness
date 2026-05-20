@@ -241,6 +241,17 @@ const en = {
   prog_latest_badge: 'Latest',
   prog_save: 'Save',
 
+  // Feedback
+  feedback_btn: 'Feedback',
+  feedback_title: 'Share feedback',
+  feedback_subtitle: 'What\'s working? What could be better?',
+  feedback_placeholder: 'Tell us what you think…',
+  feedback_rating_label: 'How would you rate FitTrack?',
+  feedback_submit: 'Send feedback',
+  feedback_sending: 'Sending…',
+  feedback_thanks: 'Thanks! Your feedback helps a lot.',
+  feedback_error: 'Something went wrong. Try again.',
+
   // Account / Settings
   acc_title: 'Account & Goals',
   acc_subtitle: 'Update your profile, body stats, and targets',
