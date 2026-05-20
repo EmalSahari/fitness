@@ -167,8 +167,8 @@ export default function FoodPage() {
 
   async function handleLogFood(food: LogFood): Promise<string | null> {
     setSaving(true);
-    // Insert base row — never includes ingredients to avoid PGRST204 schema cache error
-    const { data, error } = await supabase.from('food_entries').insert({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const newEntry: Record<string, any> = {
       user_id: user!.id,
       name: food.name,
       calories: food.calories,
@@ -177,27 +177,15 @@ export default function FoodPage() {
       carbs: food.carbs,
       fat: food.fat,
       date: today,
-    }).select().single();
+    };
+    if (food.ingredients && food.ingredients.length > 0) {
+      newEntry.ingredients = food.ingredients;
+    }
+    const { data, error } = await supabase.from('food_entries').insert(newEntry).select().single();
     if (error) { setSaving(false); return `[${error.code}] ${error.message}`; }
     if (!data) { setSaving(false); return 'No data returned.'; }
 
-    // Set ingredients via direct DB route — bypasses PostgREST schema cache entirely
-    if (food.ingredients && food.ingredients.length > 0) {
-      const res = await fetch('/api/food/set-ingredients', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: data.id, ingredients: food.ingredients }),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        setEntries(prev => [data as FoodEntry, ...prev]);
-        setSaving(false);
-        return `Meal saved but ingredients failed: ${body.error ?? res.statusText}`;
-      }
-      setEntries(prev => [{ ...data, ingredients: food.ingredients } as FoodEntry, ...prev]);
-    } else {
-      setEntries(prev => [data as FoodEntry, ...prev]);
-    }
+    if (data) setEntries(prev => [data as FoodEntry, ...prev]);
     setSaving(false);
     return null;
   }
