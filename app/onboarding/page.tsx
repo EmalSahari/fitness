@@ -71,12 +71,16 @@ export default function OnboardingPage() {
     const calorieGoal = suggestedGoal ?? 2000;
     const proteinGoal = weightKg ? proteinGoalFromWeight(parseFloat(weightKg), goal) : 150;
 
+    // Update core fields first, then protein_goal separately to handle schema cache lag
     const { error: profileErr } = await supabase
       .from('profiles')
-      .update({ name: name.trim(), calorie_goal: calorieGoal, protein_goal: proteinGoal, onboarded: true })
+      .update({ name: name.trim(), calorie_goal: calorieGoal, onboarded: true })
       .eq('id', user.id);
 
     if (profileErr) { setError(profileErr.message); setLoading(false); return; }
+
+    // Best-effort — may fail if schema cache hasn't refreshed yet, non-blocking
+    await supabase.from('profiles').update({ protein_goal: proteinGoal }).eq('id', user.id);
 
     await supabase.from('user_stats').upsert({
       user_id: user.id,

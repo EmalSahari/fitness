@@ -82,14 +82,12 @@ export default function AccountPage() {
 
     const { error: profileErr } = await supabase
       .from('profiles')
-      .update({
-        name: name.trim(),
-        calorie_goal: parseInt(calorieGoal) || 2000,
-        protein_goal: parseInt(proteinGoal) || 150,
-      })
+      .update({ name: name.trim(), calorie_goal: parseInt(calorieGoal) || 2000 })
       .eq('id', user.id);
 
     if (profileErr) { setError(profileErr.message); setSaving(false); return; }
+
+    await supabase.from('profiles').update({ protein_goal: parseInt(proteinGoal) || 150 }).eq('id', user.id);
 
     await supabase.from('user_stats').upsert({
       user_id: user.id,
