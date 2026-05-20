@@ -620,7 +620,7 @@ export default function ProgressPage() {
       </div>
 
       {/* Progress photos */}
-      <ProgressPhotos userId={user.id} />
+      {user && <ProgressPhotos userId={user.id} />}
 
       {/* Weight history */}
       {weightEntries.length > 0 && (
