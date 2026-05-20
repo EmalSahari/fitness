@@ -7,6 +7,7 @@ import { getTodayDate } from '@/lib/utils';
 import type { FoodEntry, MealType } from '@/lib/types';
 import AiPromptInput from '@/components/AiPromptInput';
 import BarcodeScanner from '@/components/BarcodeScanner';
+import MealBuilder from '@/components/MealBuilder';
 import { FoodSkeleton } from '@/components/Skeleton';
 
 const MEAL_TYPES: MealType[] = ['breakfast', 'lunch', 'dinner', 'snack'];
@@ -41,6 +42,7 @@ export default function FoodPage() {
   const [aiError, setAiError] = useState('');
   const [aiConfidence, setAiConfidence] = useState<'high' | 'medium' | 'low' | null>(null);
   const [showScanner, setShowScanner] = useState(false);
+  const [showMealBuilder, setShowMealBuilder] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -172,6 +174,12 @@ export default function FoodPage() {
           onClose={() => setShowScanner(false)}
         />
       )}
+      {showMealBuilder && (
+        <MealBuilder
+          onLog={handleScanAdd}
+          onClose={() => setShowMealBuilder(false)}
+        />
+      )}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h1 className="text-2xl font-bold text-white">{t('food_title')}</h1>
@@ -186,6 +194,15 @@ export default function FoodPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h2M4 12h2M4 18h2M18 6h2M18 12h2M18 18h2M8 4v2M12 4v2M16 4v2M8 18v2M12 18v2M16 18v2M8 8h8v8H8z" />
             </svg>
             <span className="hidden sm:inline text-sm font-medium">{t('scan_btn')}</span>
+          </button>
+          {/* Build meal */}
+          <button onClick={() => setShowMealBuilder(true)}
+            className="flex items-center justify-center bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 w-9 h-9 rounded-lg transition-colors sm:w-auto sm:h-auto sm:px-3 sm:py-2 sm:gap-1.5"
+            title="Build a meal">
+            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+            <span className="hidden sm:inline text-sm font-medium">Build meal</span>
           </button>
           <button onClick={() => { setShowForm(!showForm); setAiInput(''); setAiError(''); setAiConfidence(null); }}
             className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-3 py-2 rounded-lg transition-colors whitespace-nowrap">
