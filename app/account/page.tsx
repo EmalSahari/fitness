@@ -317,6 +317,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function NotificationToggle({ t }: { t: (k: TranslationKey) => string }) {
   const [status, setStatus] = useState<'idle' | 'enabled' | 'denied' | 'unsupported'>('idle');
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
     if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
@@ -328,11 +329,12 @@ function NotificationToggle({ t }: { t: (k: TranslationKey) => string }) {
       reg.pushManager.getSubscription().then(sub => {
         setStatus(sub ? 'enabled' : 'idle');
       })
-    );
+    ).catch(() => setStatus('idle'));
   }, []);
 
   async function toggle() {
     setLoading(true);
+    setErrorMsg('');
     try {
       const reg = await navigator.serviceWorker.ready;
       const existing = await reg.pushManager.getSubscription();
@@ -342,15 +344,21 @@ function NotificationToggle({ t }: { t: (k: TranslationKey) => string }) {
         await fetch('/api/push/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: null }) });
         setStatus('idle');
       } else {
-        const permission = await Notification.requestPermission();
-        if (permission !== 'granted') { setStatus('denied'); setLoading(false); return; }
-
         const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
         if (!vapidKey) {
-          alert('Push notifications are not configured yet. Add NEXT_PUBLIC_VAPID_PUBLIC_KEY to Vercel environment variables.');
+          setErrorMsg('Not configured — add NEXT_PUBLIC_VAPID_PUBLIC_KEY to Vercel env vars, then redeploy.');
           setLoading(false);
           return;
         }
+
+        const permission = await Notification.requestPermission();
+        if (permission === 'denied') { setStatus('denied'); setLoading(false); return; }
+        if (permission !== 'granted') {
+          setErrorMsg('Permission was not granted. Please allow notifications in your browser settings.');
+          setLoading(false);
+          return;
+        }
+
         const sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(vapidKey),
@@ -359,7 +367,8 @@ function NotificationToggle({ t }: { t: (k: TranslationKey) => string }) {
         setStatus('enabled');
       }
     } catch (err) {
-      console.error('Push subscription error:', err);
+      const msg = err instanceof Error ? err.message : String(err);
+      setErrorMsg(`Failed to enable: ${msg}`);
     }
     setLoading(false);
   }
@@ -377,12 +386,18 @@ function NotificationToggle({ t }: { t: (k: TranslationKey) => string }) {
         </div>
         {status !== 'denied' && (
           <button onClick={toggle} disabled={loading}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${status === 'enabled' ? 'bg-blue-600' : 'bg-slate-700'}`}>
-            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${status === 'enabled' ? 'translate-x-6' : 'translate-x-1'}`} />
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none disabled:opacity-60 ${status === 'enabled' ? 'bg-blue-600' : 'bg-slate-600'}`}>
+            {loading
+              ? <span className="absolute inset-0 flex items-center justify-center"><span className="w-3 h-3 border-2 border-white/50 border-t-white rounded-full animate-spin" /></span>
+              : <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${status === 'enabled' ? 'translate-x-6' : 'translate-x-1'}`} />
+            }
           </button>
         )}
       </div>
-      {status === 'enabled' && (
+      {errorMsg && (
+        <p className="text-xs text-red-400 mt-3 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{errorMsg}</p>
+      )}
+      {status === 'enabled' && !errorMsg && (
         <p className="text-xs text-blue-400 mt-3 flex items-center gap-1.5">
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
           {t('notif_enabled')} — 8am &amp; 7pm daily
