@@ -1,12 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { createClient } from '@/lib/supabase/client';
-import { getTodayDate, getLast7Days } from '@/lib/utils';
+import { getTodayDate, getLastNDays } from '@/lib/utils';
 import type { WeightEntry, FoodEntry, WorkoutEntry } from '@/lib/types';
 
+type Period = '7d' | '30d' | '3m';
 type Insight = { type: 'positive' | 'warning' | 'suggestion'; title: string; text: string };
+
+const PERIOD_N: Record<Period, number> = { '7d': 7, '30d': 30, '3m': 90 };
+const PERIOD_LABEL: Record<Period, string> = { '7d': '7D', '30d': '30D', '3m': '3M' };
 
 const insightStyles = {
   positive:   { border: 'border-green-500/30',  bg: 'bg-green-500/8',  icon: '✅', label: 'text-green-400' },
@@ -16,7 +20,7 @@ const insightStyles = {
 
 function WeightChart({ entries }: { entries: WeightEntry[] }) {
   if (entries.length < 2) return null;
-  const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date)).slice(-10);
+  const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date)).slice(-20);
   const weights = sorted.map(e => Number(e.weight_kg));
   const rawMin = Math.min(...weights);
   const rawMax = Math.max(...weights);
@@ -31,9 +35,8 @@ function WeightChart({ entries }: { entries: WeightEntry[] }) {
   const py = (w: number) => PAD.top + cH - ((w - min) / (max - min)) * cH;
   const d = sorted.map((e, i) => `${i === 0 ? 'M' : 'L'}${px(i).toFixed(1)},${py(Number(e.weight_kg)).toFixed(1)}`).join(' ');
   const gridVals = [rawMin, (rawMin + rawMax) / 2, rawMax];
-  const labelIdxs = sorted.length <= 3
-    ? sorted.map((_, i) => i)
-    : [0, Math.floor((sorted.length - 1) / 2), sorted.length - 1];
+  const n = sorted.length;
+  const labelIdxs = n <= 3 ? sorted.map((_, i) => i) : [0, Math.floor((n - 1) / 2), n - 1];
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 130 }}>
@@ -45,16 +48,14 @@ function WeightChart({ entries }: { entries: WeightEntry[] }) {
       </defs>
       {gridVals.map((v, i) => (
         <g key={i}>
-          <line x1={PAD.left} y1={py(v)} x2={W - PAD.right} y2={py(v)}
-            stroke="#1e293b" strokeWidth={1} />
-          <text x={PAD.left - 5} y={py(v)} textAnchor="end" dominantBaseline="middle"
-            fill="#475569" fontSize={9}>{v.toFixed(1)}</text>
+          <line x1={PAD.left} y1={py(v)} x2={W - PAD.right} y2={py(v)} stroke="#1e293b" strokeWidth={1} />
+          <text x={PAD.left - 5} y={py(v)} textAnchor="end" dominantBaseline="middle" fill="#475569" fontSize={9}>{v.toFixed(1)}</text>
         </g>
       ))}
       <path d={`${d} L${px(sorted.length - 1)},${PAD.top + cH} L${px(0)},${PAD.top + cH} Z`} fill="url(#wgrad)" />
       <path d={d} fill="none" stroke="#3b82f6" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
       {sorted.map((e, i) => (
-        <circle key={e.id} cx={px(i)} cy={py(Number(e.weight_kg))} r={4}
+        <circle key={e.id} cx={px(i)} cy={py(Number(e.weight_kg))} r={sorted.length > 15 ? 2.5 : 4}
           fill="#0f172a" stroke="#3b82f6" strokeWidth={2} />
       ))}
       {labelIdxs.map(i => (
@@ -66,16 +67,20 @@ function WeightChart({ entries }: { entries: WeightEntry[] }) {
   );
 }
 
-function WeeklyCaloriesChart({ dayCalMap, goal, last7 }: { dayCalMap: Record<string, number>; goal: number; last7: string[] }) {
+function CaloriesChart({ dayCalMap, goal, days }: { dayCalMap: Record<string, number>; goal: number; days: string[] }) {
+  const n = days.length;
   const W = 500, H = 130;
   const PAD = { left: 40, right: 12, top: 16, bottom: 28 };
   const cW = W - PAD.left - PAD.right;
   const cH = H - PAD.top - PAD.bottom;
-  const vals = last7.map(d => dayCalMap[d] ?? 0);
+  const vals = days.map(d => dayCalMap[d] ?? 0);
   const maxVal = Math.max(goal * 1.25, ...vals, 1);
-  const barW = (cW / 7) * 0.55;
+  const slotW = cW / n;
+  const barW = Math.max(slotW * 0.72, 2);
   const goalY = PAD.top + cH * (1 - goal / maxVal);
   const gridVals = [0, Math.round(goal / 2), goal, Math.round(maxVal)];
+  // Show ~6 labels regardless of period
+  const labelEvery = n <= 7 ? 1 : n <= 30 ? 7 : 15;
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 130 }}>
@@ -83,33 +88,35 @@ function WeeklyCaloriesChart({ dayCalMap, goal, last7 }: { dayCalMap: Record<str
         const y = PAD.top + cH * (1 - v / maxVal);
         return (
           <g key={i}>
-            <line x1={PAD.left} y1={y} x2={W - PAD.right} y2={y}
-              stroke="#1e293b" strokeWidth={1} />
-            <text x={PAD.left - 5} y={y} textAnchor="end" dominantBaseline="middle"
-              fill="#475569" fontSize={9}>{v > 999 ? `${(v / 1000).toFixed(1)}k` : v}</text>
+            <line x1={PAD.left} y1={y} x2={W - PAD.right} y2={y} stroke="#1e293b" strokeWidth={1} />
+            <text x={PAD.left - 5} y={y} textAnchor="end" dominantBaseline="middle" fill="#475569" fontSize={9}>
+              {v > 999 ? `${(v / 1000).toFixed(1)}k` : v}
+            </text>
           </g>
         );
       })}
-      {/* Goal dashed line */}
       <line x1={PAD.left} y1={goalY} x2={W - PAD.right} y2={goalY}
         stroke="#3b82f6" strokeWidth={1.5} strokeDasharray="5,4" opacity={0.7} />
       <text x={W - PAD.right + 2} y={goalY} dominantBaseline="middle" fill="#3b82f6" fontSize={8} opacity={0.8}>goal</text>
 
-      {last7.map((date, i) => {
+      {days.map((date, i) => {
         const cal = dayCalMap[date] ?? 0;
-        const slotW = cW / 7;
         const x = PAD.left + i * slotW + slotW / 2 - barW / 2;
-        const barH = cal > 0 ? Math.max((cal / maxVal) * cH, 4) : 3;
+        const barH = cal > 0 ? Math.max((cal / maxVal) * cH, 3) : 3;
         const y = PAD.top + cH - barH;
         const over = cal > goal;
         const fill = cal === 0 ? '#1e293b' : over ? '#ef4444' : '#22c55e';
-        const day = new Date(date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'narrow' });
+        const showLabel = i % labelEvery === 0 || i === n - 1;
+        const label = new Date(date + 'T00:00:00').toLocaleDateString(undefined,
+          n <= 7 ? { weekday: 'narrow' } : { month: 'short', day: 'numeric' });
 
         return (
           <g key={date}>
-            <rect x={x} y={y} width={barW} height={barH} fill={fill} rx={3}
-              opacity={cal === 0 ? 0.5 : 0.9} />
-            <text x={x + barW / 2} y={H - 6} textAnchor="middle" fill="#475569" fontSize={9}>{day}</text>
+            <rect x={x} y={y} width={barW} height={barH} fill={fill} rx={n > 30 ? 1 : 3}
+              opacity={cal === 0 ? 0.4 : 0.9} />
+            {showLabel && (
+              <text x={x + barW / 2} y={H - 6} textAnchor="middle" fill="#475569" fontSize={n <= 7 ? 9 : 8}>{label}</text>
+            )}
           </g>
         );
       })}
@@ -117,14 +124,44 @@ function WeeklyCaloriesChart({ dayCalMap, goal, last7 }: { dayCalMap: Record<str
   );
 }
 
-function WorkoutBars({ workoutEntries, last7 }: { workoutEntries: WorkoutEntry[]; last7: string[] }) {
+function WorkoutBars({ workoutEntries, days }: { workoutEntries: WorkoutEntry[]; days: string[] }) {
+  const n = days.length;
   const byDay: Record<string, number> = {};
   workoutEntries.forEach(w => { byDay[w.date] = (byDay[w.date] ?? 0) + w.duration; });
   const max = Math.max(...Object.values(byDay), 30);
 
+  // For 30d/3m: compact dot grid
+  if (n > 7) {
+    const cols = n <= 30 ? 10 : 13;
+    const rows = Math.ceil(n / cols);
+    return (
+      <div>
+        <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+          {days.map(date => {
+            const mins = byDay[date] ?? 0;
+            const intensity = mins === 0 ? 0 : mins < 30 ? 1 : mins < 60 ? 2 : 3;
+            const colors = ['bg-slate-800', 'bg-violet-500/40', 'bg-violet-500/70', 'bg-violet-500'];
+            return (
+              <div key={date} title={mins > 0 ? `${new Date(date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}: ${mins} min` : undefined}
+                className={`aspect-square rounded-sm ${colors[intensity]}`} />
+            );
+          })}
+        </div>
+        <div className="flex items-center gap-2 mt-2">
+          <span className="text-[10px] text-slate-600">Less</span>
+          {['bg-slate-800', 'bg-violet-500/40', 'bg-violet-500/70', 'bg-violet-500'].map((c, i) => (
+            <div key={i} className={`w-2.5 h-2.5 rounded-sm ${c}`} />
+          ))}
+          <span className="text-[10px] text-slate-600">More</span>
+        </div>
+      </div>
+    );
+  }
+
+  // 7D: original bar design
   return (
     <div className="flex items-end gap-1.5 h-14">
-      {last7.map(date => {
+      {days.map(date => {
         const mins = byDay[date] ?? 0;
         const pct = mins > 0 ? Math.max((mins / max) * 100, 12) : 0;
         const day = new Date(date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'narrow' });
@@ -132,8 +169,7 @@ function WorkoutBars({ workoutEntries, last7 }: { workoutEntries: WorkoutEntry[]
           <div key={date} className="flex-1 flex flex-col items-center gap-1">
             <div className="w-full flex flex-col justify-end" style={{ height: 44 }}>
               {mins > 0 ? (
-                <div className="w-full rounded-t-sm bg-violet-500/80 transition-all duration-500"
-                  style={{ height: `${pct}%` }} title={`${mins} min`} />
+                <div className="w-full rounded-t-sm bg-violet-500/80 transition-all duration-500" style={{ height: `${pct}%` }} title={`${mins} min`} />
               ) : (
                 <div className="w-full rounded-t-sm bg-slate-800" style={{ height: 4 }} />
               )}
@@ -150,8 +186,8 @@ export default function ProgressPage() {
   const { user, profile, loading: authLoading, t } = useAuth();
   const supabase = createClient();
   const today = getTodayDate();
-  const last7 = getLast7Days();
 
+  const [period, setPeriod] = useState<Period>('7d');
   const [weightEntries, setWeightEntries] = useState<WeightEntry[]>([]);
   const [foodEntries, setFoodEntries] = useState<FoodEntry[]>([]);
   const [workoutEntries, setWorkoutEntries] = useState<WorkoutEntry[]>([]);
@@ -166,22 +202,37 @@ export default function ProgressPage() {
   const [insightsLoading, setInsightsLoading] = useState(false);
   const [insightsFetched, setInsightsFetched] = useState(false);
 
+  const periodDays = getLastNDays(PERIOD_N[period]);
+  const startDate = periodDays[0];
+
+  const fetchData = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    const weightLimit = period === '3m' ? 90 : period === '30d' ? 30 : 20;
+    const [w, f, wo, s] = await Promise.all([
+      supabase.from('weight_entries').select('*').eq('user_id', user.id).order('date', { ascending: false }).limit(weightLimit),
+      supabase.from('food_entries').select('*').eq('user_id', user.id).gte('date', startDate).lte('date', today),
+      supabase.from('workout_entries').select('*').eq('user_id', user.id).gte('date', startDate).lte('date', today),
+      supabase.from('user_stats').select('goal').eq('user_id', user.id).single(),
+    ]);
+    setWeightEntries((w.data ?? []) as WeightEntry[]);
+    setFoodEntries((f.data ?? []) as FoodEntry[]);
+    setWorkoutEntries((wo.data ?? []) as WorkoutEntry[]);
+    setUserStats(s.data ?? null);
+    setLoading(false);
+  }, [user, period]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (authLoading) return;
     if (!user) { setLoading(false); return; }
-    Promise.all([
-      supabase.from('weight_entries').select('*').eq('user_id', user.id).order('date', { ascending: false }).limit(20),
-      supabase.from('food_entries').select('*').eq('user_id', user.id).in('date', last7),
-      supabase.from('workout_entries').select('*').eq('user_id', user.id).in('date', last7),
-      supabase.from('user_stats').select('goal').eq('user_id', user.id).single(),
-    ]).then(([w, f, wo, s]) => {
-      setWeightEntries((w.data ?? []) as WeightEntry[]);
-      setFoodEntries((f.data ?? []) as FoodEntry[]);
-      setWorkoutEntries((wo.data ?? []) as WorkoutEntry[]);
-      setUserStats(s.data ?? null);
-      setLoading(false);
-    });
-  }, [user, authLoading]); // eslint-disable-line react-hooks/exhaustive-deps
+    fetchData();
+  }, [user, authLoading, fetchData]);
+
+  // Reset insights when period changes
+  useEffect(() => {
+    setInsights([]);
+    setInsightsFetched(false);
+  }, [period]);
 
   async function logWeight() {
     const kg = parseFloat(weightInput);
@@ -201,14 +252,17 @@ export default function ProgressPage() {
     foodEntries.forEach(e => { dayMap[e.date] = (dayMap[e.date] ?? 0) + e.calories; });
     const days = Object.values(dayMap);
     const avgCalories = days.length > 0 ? Math.round(days.reduce((a, b) => a + b, 0) / days.length) : 0;
+    const n = PERIOD_N[period];
     const avgCaloriesBurned = workoutEntries.length > 0
-      ? Math.round(workoutEntries.reduce((s, e) => s + e.calories_burned, 0) / 7) : 0;
+      ? Math.round(workoutEntries.reduce((s, e) => s + e.calories_burned, 0) / (n / 7)) : 0;
     const res = await fetch('/api/progress-insights', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         weightEntries: weightEntries.slice(0, 10), avgCalories, avgCaloriesBurned,
-        workoutsPerWeek: workoutEntries.length, calorieGoal: profile?.calorie_goal ?? 2000,
+        workoutsPerWeek: Math.round(workoutEntries.length / (n / 7)),
+        calorieGoal: profile?.calorie_goal ?? 2000,
         goal: userStats?.goal ?? profile?.calorie_goal, name: profile?.name, tdee: null,
+        periodLabel: period === '7d' ? 'last 7 days' : period === '30d' ? 'last 30 days' : 'last 3 months',
       }),
     });
     const data = await res.json();
@@ -236,22 +290,37 @@ export default function ProgressPage() {
   const daysLogged = calDays.length;
   const totalBurned = workoutEntries.reduce((s, e) => s + e.calories_burned, 0);
   const goal = profile?.calorie_goal ?? 2000;
+  const totalDays = PERIOD_N[period];
+  const periodText = period === '7d' ? t('prog_last_7') : period === '30d' ? 'Last 30 days' : 'Last 3 months';
 
   return (
     <div className="space-y-5 pb-4">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-white">{t('prog_title')}</h1>
-          <p className="text-slate-400 text-sm mt-0.5">{t('prog_last_7')} · {daysLogged} {t('prog_subtitle_days')}</p>
+          <p className="text-slate-400 text-sm mt-0.5">{periodText} · {daysLogged} {t('prog_subtitle_days')}</p>
         </div>
-        <button onClick={() => setShowWeightForm(!showWeightForm)}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-3 py-2 rounded-lg transition-colors">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-          {t('prog_log_weight')}
-        </button>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Period selector */}
+          <div className="flex bg-slate-800 border border-slate-700 rounded-lg p-0.5">
+            {(['7d', '30d', '3m'] as Period[]).map(p => (
+              <button key={p} onClick={() => setPeriod(p)}
+                className={`text-xs font-medium px-2.5 py-1 rounded-md transition-colors ${
+                  period === p ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-slate-200'
+                }`}>
+                {PERIOD_LABEL[p]}
+              </button>
+            ))}
+          </div>
+          <button onClick={() => setShowWeightForm(!showWeightForm)}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-3 py-2 rounded-lg transition-colors">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            {t('prog_log_weight')}
+          </button>
+        </div>
       </div>
 
       {/* Weight form */}
@@ -304,7 +373,7 @@ export default function ProgressPage() {
         )}
       </div>
 
-      {/* Calories this week chart */}
+      {/* Calories chart */}
       <div className="bg-slate-900 rounded-xl p-5" style={{ border: '1px solid rgba(34,197,94,0.15)', boxShadow: '0 0 20px rgba(34,197,94,0.04)' }}>
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-semibold text-white">{t('prog_calories_week')}</h2>
@@ -314,7 +383,7 @@ export default function ProgressPage() {
           </div>
         </div>
         {daysLogged > 0 ? (
-          <WeeklyCaloriesChart dayCalMap={dayCalMap} goal={goal} last7={last7} />
+          <CaloriesChart dayCalMap={dayCalMap} goal={goal} days={periodDays} />
         ) : (
           <p className="text-slate-500 text-sm py-6 text-center">{t('prog_no_food_week')}</p>
         )}
@@ -341,11 +410,11 @@ export default function ProgressPage() {
           <h2 className="font-semibold text-white">{t('prog_workout_activity')}</h2>
           <span className="text-xs text-slate-500">{workoutEntries.length} {t('prog_sessions')} · {totalBurned.toLocaleString()} {t('prog_kcal_burned')}</span>
         </div>
-        <WorkoutBars workoutEntries={workoutEntries} last7={last7} />
-        <p className="text-xs text-slate-600 mt-2">{t('prog_bar_hint')}</p>
+        <WorkoutBars workoutEntries={workoutEntries} days={periodDays} />
+        {period === '7d' && <p className="text-xs text-slate-600 mt-2">{t('prog_bar_hint')}</p>}
       </div>
 
-      {/* Weekly stats */}
+      {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
           <p className="text-xs text-slate-500 mb-1">{t('prog_avg_cal')}</p>
@@ -363,16 +432,21 @@ export default function ProgressPage() {
         </div>
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
           <p className="text-xs text-slate-500 mb-1">{t('prog_days_logged')}</p>
-          <p className="text-2xl font-bold text-white">{daysLogged} <span className="text-slate-500 text-lg font-normal">/ 7</span></p>
-          <div className="flex gap-1 mt-2">
-            {last7.map(d => (
-              <div key={d} className={`flex-1 h-1.5 rounded-full ${dayCalMap[d] ? 'bg-blue-500' : 'bg-slate-700'}`} />
-            ))}
-          </div>
+          <p className="text-2xl font-bold text-white">{daysLogged} <span className="text-slate-500 text-lg font-normal">/ {totalDays}</span></p>
+          {period === '7d' && (
+            <div className="flex gap-1 mt-2">
+              {periodDays.map(d => (
+                <div key={d} className={`flex-1 h-1.5 rounded-full ${dayCalMap[d] ? 'bg-blue-500' : 'bg-slate-700'}`} />
+              ))}
+            </div>
+          )}
+          {period !== '7d' && (
+            <p className="text-xs text-slate-600 mt-1">{Math.round((daysLogged / totalDays) * 100)}% consistency</p>
+          )}
         </div>
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
           <p className="text-xs text-slate-500 mb-1">{t('prog_net_week')}</p>
-          <p className={`text-2xl font-bold ${(avgCal * 7 - totalBurned) > goal * 7 ? 'text-red-400' : 'text-green-400'}`}>
+          <p className={`text-2xl font-bold ${(avgCal * totalDays - totalBurned) > goal * totalDays ? 'text-red-400' : 'text-green-400'}`}>
             {avgCal > 0 ? (avgCal * daysLogged - totalBurned).toLocaleString() : '—'}
           </p>
           <p className="text-xs text-slate-500 mt-1">{t('prog_kcal_total')}</p>

@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { weightEntries, avgCalories, avgCaloriesBurned, workoutsPerWeek, calorieGoal, goal, name, tdee } = body;
+  const { weightEntries, avgCalories, avgCaloriesBurned, workoutsPerWeek, calorieGoal, goal, name, tdee, periodLabel } = body;
 
   const weightTrend = weightEntries.length >= 2
     ? (weightEntries[0].weight_kg - weightEntries[weightEntries.length - 1].weight_kg).toFixed(1)
@@ -28,7 +28,7 @@ Goal: ${goal} (${goal === 'lose_fat' ? 'fat loss' : goal === 'build_muscle' ? 'm
 Calorie goal: ${calorieGoal} kcal/day
 Estimated TDEE: ${tdee ?? 'unknown'} kcal/day
 
-Last 7 days:
+${periodLabel ?? 'Last 7 days'}:
 - Average daily calories consumed: ${avgCalories} kcal
 - Average daily calories burned (exercise): ${avgCaloriesBurned} kcal
 - Workout sessions: ${workoutsPerWeek}

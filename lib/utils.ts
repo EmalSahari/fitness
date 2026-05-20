@@ -5,10 +5,14 @@ export function getTodayDate(): string {
 }
 
 export function getLast7Days(): string[] {
-  // Returns 7 days oldest→newest (left→right on charts), including today
-  return Array.from({ length: 7 }, (_, i) => {
+  return getLastNDays(7);
+}
+
+export function getLastNDays(n: number): string[] {
+  // Returns n days oldest→newest (left→right on charts), including today
+  return Array.from({ length: n }, (_, i) => {
     const d = new Date();
-    d.setDate(d.getDate() - (6 - i));
+    d.setDate(d.getDate() - (n - 1 - i));
     return d.toISOString().split('T')[0];
   });
 }
