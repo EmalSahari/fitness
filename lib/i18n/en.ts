@@ -334,6 +334,12 @@ const en = {
   notif_morning_label: 'Morning reminder',
   notif_evening_label: 'Evening reminder',
   notif_time_note: 'Times are in your local timezone',
+
+  // Install prompt
+  install_title: 'Add FitTrack to your home screen',
+  install_body: 'Tap the share button, then "Add to Home Screen" for the best experience.',
+  install_dismiss: 'Maybe later',
+  install_ios_step: 'Tap',
 };
 
 export type TranslationKey = keyof typeof en;

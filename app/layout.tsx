@@ -5,6 +5,7 @@ import Nav from '@/components/Nav';
 import MainLayout from '@/components/MainLayout';
 import RegisterSW from '@/components/RegisterSW';
 import FeedbackButton from '@/components/FeedbackButton';
+import InstallPrompt from '@/components/InstallPrompt';
 
 export const metadata: Metadata = {
   title: 'FitTrack',
@@ -38,6 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Nav />
             <MainLayout>{children}</MainLayout>
             <FeedbackButton />
+            <InstallPrompt />
           </div>
         </AuthProvider>
       </body>

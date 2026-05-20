@@ -336,6 +336,12 @@ const da: Record<TranslationKey, string> = {
   notif_morning_label: 'Morgen påmindelse',
   notif_evening_label: 'Aften påmindelse',
   notif_time_note: 'Tider er i din lokale tidszone',
+
+  // Install prompt
+  install_title: 'Tilføj FitTrack til din startskærm',
+  install_body: 'Tryk på del-knappen, derefter "Føj til hjemmeskærm" for den bedste oplevelse.',
+  install_dismiss: 'Måske senere',
+  install_ios_step: 'Tryk på',
 };
 
 export default da;
