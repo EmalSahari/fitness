@@ -58,6 +58,10 @@ export default function FoodPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editingEntry, setEditingEntry] = useState<FoodEntry | null>(null);
   const [editForm, setEditForm] = useState(DEFAULT_FORM);
+  const [editIngredients, setEditIngredients] = useState<FoodIngredient[]>([]);
+  const [editIngInput, setEditIngInput] = useState('');
+  const [editIngParsing, setEditIngParsing] = useState(false);
+  const [editIngError, setEditIngError] = useState('');
   const [editSaving, setEditSaving] = useState(false);
 
   useEffect(() => {
@@ -180,7 +184,11 @@ export default function FoodPage() {
 
   function openEdit(entry: FoodEntry, e: React.MouseEvent) {
     e.stopPropagation();
+    const ings = (entry.ingredients as FoodIngredient[] | null | undefined) ?? [];
     setEditingEntry(entry);
+    setEditIngredients(ings);
+    setEditIngInput('');
+    setEditIngError('');
     setEditForm({
       name: entry.name,
       calories: String(entry.calories),
@@ -189,6 +197,55 @@ export default function FoodPage() {
       carbs: entry.carbs != null ? String(entry.carbs) : '',
       fat: entry.fat != null ? String(entry.fat) : '',
     });
+  }
+
+  function syncTotalsFromIngredients(ings: FoodIngredient[]) {
+    if (ings.length === 0) return;
+    const totalCals = ings.reduce((s, i) => s + i.calories, 0);
+    const totalP = ings.some(i => i.protein != null) ? Math.round(ings.reduce((s, i) => s + (i.protein ?? 0), 0) * 10) / 10 : null;
+    const totalC = ings.some(i => i.carbs != null) ? Math.round(ings.reduce((s, i) => s + (i.carbs ?? 0), 0) * 10) / 10 : null;
+    const totalF = ings.some(i => i.fat != null) ? Math.round(ings.reduce((s, i) => s + (i.fat ?? 0), 0) * 10) / 10 : null;
+    setEditForm(prev => ({
+      ...prev,
+      calories: String(totalCals),
+      protein: totalP != null ? String(totalP) : prev.protein,
+      carbs: totalC != null ? String(totalC) : prev.carbs,
+      fat: totalF != null ? String(totalF) : prev.fat,
+    }));
+  }
+
+  function removeEditIngredient(idx: number) {
+    const next = editIngredients.filter((_, i) => i !== idx);
+    setEditIngredients(next);
+    syncTotalsFromIngredients(next);
+  }
+
+  async function handleAddEditIngredient() {
+    if (!editIngInput.trim()) return;
+    setEditIngParsing(true);
+    setEditIngError('');
+    try {
+      const res = await fetch('/api/parse-food', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: editIngInput }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) { setEditIngError(data.error ?? 'Could not estimate nutrition.'); setEditIngParsing(false); return; }
+      const next = [...editIngredients, {
+        name: data.name ?? editIngInput,
+        calories: data.calories ?? 0,
+        protein: data.protein ?? null,
+        carbs: data.carbs ?? null,
+        fat: data.fat ?? null,
+      }];
+      setEditIngredients(next);
+      syncTotalsFromIngredients(next);
+      setEditIngInput('');
+    } catch {
+      setEditIngError('Something went wrong.');
+    }
+    setEditIngParsing(false);
   }
 
   async function handleEditSave(e: React.FormEvent) {
@@ -204,6 +261,7 @@ export default function FoodPage() {
       protein: editForm.protein ? parseFloat(editForm.protein) : null,
       carbs: editForm.carbs ? parseFloat(editForm.carbs) : null,
       fat: editForm.fat ? parseFloat(editForm.fat) : null,
+      ingredients: editIngredients.length > 0 ? editIngredients : null,
     };
     await supabase.from('food_entries').update(updated).eq('id', editingEntry.id);
     setEntries(prev => prev.map(e => e.id === editingEntry.id ? { ...e, ...updated } : e));
@@ -228,8 +286,9 @@ export default function FoodPage() {
       {editingEntry && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 pb-20 sm:pb-4">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setEditingEntry(null)} />
-          <div className="relative w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-5">
-            <div className="flex items-center justify-between mb-4">
+          <div className="relative w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl flex flex-col max-h-[85vh] sm:max-h-[90vh]">
+            {/* Modal header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800 flex-shrink-0">
               <h2 className="font-semibold text-white">Edit entry</h2>
               <button onClick={() => setEditingEntry(null)} className="text-slate-500 hover:text-white transition-colors">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -237,46 +296,108 @@ export default function FoodPage() {
                 </svg>
               </button>
             </div>
-            <form onSubmit={handleEditSave} className="space-y-3">
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Name</label>
-                <input type="text" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-blue-500" autoFocus />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
+
+            {/* Scrollable content */}
+            <div className="flex-1 overflow-y-auto px-5 py-4 min-h-0">
+              <form id="edit-form" onSubmit={handleEditSave} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">Calories</label>
-                  <input type="number" value={editForm.calories} onChange={e => setEditForm({ ...editForm, calories: e.target.value })} min={0}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-blue-500" />
+                  <label className="block text-xs font-medium text-slate-400 mb-1">Name</label>
+                  <input type="text" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-blue-500" autoFocus />
                 </div>
+
+                {/* Ingredients section */}
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">Meal type</label>
-                  <select value={editForm.mealType} onChange={e => setEditForm({ ...editForm, mealType: e.target.value as MealType })}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-blue-500">
-                    {MEAL_TYPES.map(mt => <option key={mt} value={mt}>{mealIcons[mt]} {t(`meal_${mt}` as const)}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                {(['protein', 'carbs', 'fat'] as const).map(macro => (
-                  <div key={macro}>
-                    <label className="block text-xs font-medium text-slate-400 mb-1 capitalize">{macro} (g)</label>
-                    <input type="number" value={editForm[macro]} onChange={e => setEditForm({ ...editForm, [macro]: e.target.value })} min={0} step={0.1} placeholder="0"
-                      className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500" />
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Ingredients</p>
+                  {editIngredients.length > 0 ? (
+                    <div className="space-y-1.5 mb-2">
+                      {editIngredients.map((ing, idx) => (
+                        <div key={idx} className="flex items-center gap-2 bg-slate-800/60 border border-slate-700/60 rounded-xl px-3 py-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-white truncate">{ing.name}</p>
+                            <p className="text-xs text-slate-500">
+                              {ing.calories} kcal
+                              {ing.protein != null && ` · ${ing.protein}g P`}
+                              {ing.carbs != null && ` · ${ing.carbs}g C`}
+                              {ing.fat != null && ` · ${ing.fat}g F`}
+                            </p>
+                          </div>
+                          <button type="button" onClick={() => removeEditIngredient(idx)}
+                            className="text-slate-600 hover:text-red-400 transition-colors flex-shrink-0">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-600 mb-2">No ingredients — add some below or fill in totals manually.</p>
+                  )}
+                  {/* Add ingredient input */}
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={editIngInput}
+                      onChange={e => setEditIngInput(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddEditIngredient())}
+                      placeholder="e.g. 100g chicken breast"
+                      className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                    />
+                    <button type="button" onClick={handleAddEditIngredient} disabled={editIngParsing || !editIngInput.trim()}
+                      className="bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 text-white px-3 py-2 rounded-xl transition-colors flex-shrink-0">
+                      {editIngParsing
+                        ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        : <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                      }
+                    </button>
                   </div>
-                ))}
-              </div>
-              <div className="flex gap-2 pt-1">
-                <button type="submit" disabled={editSaving}
-                  className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 text-white text-sm font-medium py-2.5 rounded-xl transition-colors">
-                  {editSaving ? '…' : 'Save changes'}
-                </button>
-                <button type="button" onClick={() => setEditingEntry(null)}
-                  className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white text-sm rounded-xl transition-colors">
-                  Cancel
-                </button>
-              </div>
-            </form>
+                  {editIngError && <p className="text-red-400 text-xs mt-1">{editIngError}</p>}
+                </div>
+
+                {/* Totals — auto-filled from ingredients, editable */}
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                    Totals {editIngredients.length > 0 && <span className="text-blue-400/70 normal-case font-normal">(auto-calculated)</span>}
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-400 mb-1">Calories</label>
+                      <input type="number" value={editForm.calories} onChange={e => setEditForm({ ...editForm, calories: e.target.value })} min={0}
+                        className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-blue-500" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-400 mb-1">Meal type</label>
+                      <select value={editForm.mealType} onChange={e => setEditForm({ ...editForm, mealType: e.target.value as MealType })}
+                        className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-blue-500">
+                        {MEAL_TYPES.map(mt => <option key={mt} value={mt}>{mealIcons[mt]} {t(`meal_${mt}` as const)}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 mt-3">
+                    {(['protein', 'carbs', 'fat'] as const).map(macro => (
+                      <div key={macro}>
+                        <label className="block text-xs font-medium text-slate-400 mb-1 capitalize">{macro} (g)</label>
+                        <input type="number" value={editForm[macro]} onChange={e => setEditForm({ ...editForm, [macro]: e.target.value })} min={0} step={0.1} placeholder="0"
+                          className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </form>
+            </div>
+
+            {/* Footer */}
+            <div className="px-5 py-4 border-t border-slate-800 flex gap-2 flex-shrink-0">
+              <button type="submit" form="edit-form" disabled={editSaving}
+                className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 text-white text-sm font-medium py-2.5 rounded-xl transition-colors">
+                {editSaving ? '…' : 'Save changes'}
+              </button>
+              <button type="button" onClick={() => setEditingEntry(null)}
+                className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white text-sm rounded-xl transition-colors">
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
