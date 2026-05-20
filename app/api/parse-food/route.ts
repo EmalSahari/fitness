@@ -26,33 +26,50 @@ export async function POST(req: NextRequest) {
   }
 
   const completion = await getOpenAI().chat.completions.create({
-    model: 'gpt-4o-mini',
+    model: 'gpt-4o',
     temperature: 0,
     messages: [
       {
         role: 'system',
-        content: `You are a nutrition expert. The user describes food or drinks they consumed — in any language including Danish.
+        content: `You are a precise nutrition calculator. The user describes food or drinks in any language (including Danish).
 
-IMPORTANT: If the input is not a food or drink description (e.g. it is a question, code, a non-food topic, or gibberish), return exactly: {"error":"not_food"}
+IMPORTANT: If the input is not a food or drink description (e.g. a question, code, or gibberish), return exactly: {"error":"not_food"}
 
 Otherwise return a JSON object with:
-- name: short descriptive name including quantity if relevant (e.g. "3x Spicy Chicken Taquito (7-Eleven)")
-- calories: integer, TOTAL kcal for everything described (multiply per-item calories by quantity)
+- name: descriptive name with quantity (e.g. "Homemade pasta bolognese (1 serving)", "3x Spicy Chicken Taquito (7-Eleven)")
+- calories: integer, TOTAL kcal
 - protein: number, TOTAL grams (1 decimal)
 - carbs: number, TOTAL grams (1 decimal)
 - fat: number, TOTAL grams (1 decimal)
-- meal_type: one of "breakfast", "lunch", "dinner", "snack"
+- meal_type: "breakfast" | "lunch" | "dinner" | "snack"
+- confidence: "high" | "medium" | "low"
+  - high: packaged/branded product with known label data
+  - medium: well-known restaurant dish or standard recipe with predictable macros
+  - low: homemade meal, vague description, or unclear portion size
 
-Rules:
-- Always return TOTAL for the whole meal, never per-item
-- Named branded/chain items: use known nutrition data for that specific product
-- Use realistic Danish/Nordic portion sizes where relevant (1 slice rugbrød = ~65g)
+Rules for HOMEMADE or DESCRIBED MEALS (e.g. "pasta with meat sauce", "chicken and rice I made", "hjemmelavet lasagne"):
+- Break the dish into its likely main ingredients and estimate realistic portions for one serving
+- Account for cooking method: pan-frying adds ~8-12g fat, oven-roasting adds ~3-5g fat per serving
+- Include cooking oil/butter if the dish was likely fried or sautéed
+- Assume one standard serving unless quantity is stated
+
+Rules for PACKAGED/BRANDED products:
+- Use the actual known nutrition data for that specific product
+- Apply quantity multipliers when stated
+
+Rules for RESTAURANT meals:
+- Use the restaurant's published data if known, otherwise estimate from typical restaurant portion sizes (restaurant portions run 20-30% larger than home portions)
+
+General rules:
+- Always return TOTAL for the full amount described, never per-item
+- Danish/Nordic portions where relevant: 1 slice rugbrød ≈ 65g, leverpostej ≈ 30g per slice, skyr 150g per portion
+- When quantity is ambiguous, assume a standard single serving
 - Respond with ONLY valid JSON, no explanation`,
       },
       { role: 'user', content: description },
     ],
     response_format: { type: 'json_object' },
-    max_tokens: 200,
+    max_tokens: 300,
   });
 
   const raw = completion.choices[0]?.message?.content ?? '{}';
