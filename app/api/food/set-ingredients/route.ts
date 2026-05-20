@@ -7,8 +7,8 @@ function getDb() {
   if (!_sql) _sql = postgres(process.env.DATABASE_URL!, {
     max: 1,
     ssl: { rejectUnauthorized: false },
-    connect_timeout: 15,
-    idle_timeout: 20,
+    connect_timeout: 5,
+    idle_timeout: 10,
   });
   return _sql;
 }
