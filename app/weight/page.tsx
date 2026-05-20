@@ -155,6 +155,10 @@ export default function WeightPage() {
           <h2 className="font-semibold text-white mb-4">{t('wt_form_title')}</h2>
           <form onSubmit={handleSave} className="space-y-4">
             {error && <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm px-3 py-2 rounded-lg">{error}</div>}
+            <div className="flex items-start gap-2 bg-slate-800/60 border border-slate-700/50 rounded-lg px-3 py-2.5">
+              <span className="text-base leading-none mt-0.5">🌅</span>
+              <p className="text-xs text-slate-400">For the most consistent results, weigh yourself first thing in the morning before eating or drinking.</p>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1">{t('wt_weight_kg')} *</label>
