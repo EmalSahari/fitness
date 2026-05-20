@@ -56,7 +56,7 @@ export default function AccountPage() {
       .from('user_stats')
       .select('*')
       .eq('user_id', user.id)
-      .single()
+      .maybeSingle()
       .then(({ data }) => {
         if (!data) return;
         const stats = data as UserStats;
@@ -92,7 +92,7 @@ export default function AccountPage() {
 
     await supabase.from('profiles').update({ protein_goal: parseInt(proteinGoal) || 150 }).eq('id', user.id);
 
-    await supabase.from('user_stats').upsert({
+    const { error: statsErr } = await supabase.from('user_stats').upsert({
       user_id: user.id,
       age: age ? parseInt(age) : undefined,
       weight_kg: weightKg ? parseFloat(weightKg) : undefined,
@@ -102,6 +102,8 @@ export default function AccountPage() {
       goal,
       custom_goal_text: goal === 'custom' ? (customGoalText.trim() || null) : null,
     }, { onConflict: 'user_id' });
+
+    if (statsErr) { setError(statsErr.message); setSaving(false); return; }
 
     await refreshProfile();
     setSaving(false);
