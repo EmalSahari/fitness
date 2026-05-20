@@ -265,7 +265,7 @@ export default function AccountPage() {
 
       {/* Actions */}
       {error && (
-        <p className="text-red-400 text-sm">{t('acc_error')}</p>
+        <p className="text-red-400 text-sm break-all">{error}</p>
       )}
       <button
         onClick={handleSave}
