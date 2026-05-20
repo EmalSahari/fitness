@@ -11,6 +11,7 @@ interface ScannedFood {
   carbs: number | null;
   fat: number | null;
   per100g: { kcal: number; protein: number | null; carbs: number | null; fat: number | null };
+  productServingG: number | null; // serving size in grams from product data
 }
 
 interface Props {
@@ -18,16 +19,42 @@ interface Props {
   onClose: () => void;
 }
 
+type ServingUnit = 'g' | 'ml' | 'tbsp' | 'tsp' | 'stk';
+
+const UNIT_TO_G: Record<ServingUnit, number> = {
+  g: 1,
+  ml: 1,
+  tbsp: 15,
+  tsp: 5,
+  stk: 100, // overridden by productServingG when available
+};
+
+const UNIT_LABELS: Record<ServingUnit, string> = {
+  g: 'g',
+  ml: 'ml',
+  tbsp: 'spsk',
+  tsp: 'tske',
+  stk: 'stk',
+};
+
+function parseServingGrams(servingSize: string | undefined): number | null {
+  if (!servingSize) return null;
+  const match = servingSize.match(/(\d+(?:\.\d+)?)\s*g/i);
+  return match ? parseFloat(match[1]) : null;
+}
+
 export default function BarcodeScanner({ onAdd, onClose }: Props) {
   const { t } = useAuth();
   const videoRef = useRef<HTMLVideoElement>(null);
   const controlsRef = useRef<{ stop: () => void } | null>(null);
+  const cancelledRef = useRef(false);
+
   const [status, setStatus] = useState<'idle' | 'requesting' | 'scanning' | 'fetching' | 'found' | 'error' | 'unsupported'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
   const [product, setProduct] = useState<ScannedFood | null>(null);
-  const [serving, setServing] = useState('100');
+  const [servingQty, setServingQty] = useState('1');
+  const [servingUnit, setServingUnit] = useState<ServingUnit>('stk');
   const [mealType, setMealType] = useState<MealType>('lunch');
-  const cancelledRef = useRef(false);
 
   useEffect(() => {
     cancelledRef.current = false;
@@ -40,25 +67,34 @@ export default function BarcodeScanner({ onAdd, onClose }: Props) {
   async function startCamera() {
     if (status !== 'idle' && status !== 'error') return;
     setStatus('requesting');
-    const cancelled = cancelledRef;
     try {
       const { BrowserMultiFormatReader } = await import('@zxing/browser');
       const reader = new BrowserMultiFormatReader();
 
       setStatus('scanning');
-      const controls = await reader.decodeFromVideoDevice(undefined, videoRef.current!, async (result, err) => {
-        if (cancelled.current) return;
-        void err;
-        if (result) {
-          controls?.stop();
-          const barcode = result.getText();
-          setStatus('fetching');
-          await lookupBarcode(barcode);
+      // Use decodeFromConstraints for better camera control (back camera, higher res)
+      const controls = await reader.decodeFromConstraints(
+        {
+          video: {
+            facingMode: { ideal: 'environment' },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+        },
+        videoRef.current!,
+        async (result, err) => {
+          if (cancelledRef.current) return;
+          void err;
+          if (result) {
+            controls?.stop();
+            setStatus('fetching');
+            await lookupBarcode(result.getText());
+          }
         }
-      });
+      );
       controlsRef.current = controls;
     } catch {
-      if (!cancelled.current) setStatus('unsupported');
+      if (!cancelledRef.current) setStatus('unsupported');
     }
   }
 
@@ -81,15 +117,13 @@ export default function BarcodeScanner({ onAdd, onClose }: Props) {
       const carbs = n['carbohydrates_100g'] != null ? Math.round(n['carbohydrates_100g'] * 10) / 10 : null;
       const fat = n['fat_100g'] != null ? Math.round(n['fat_100g'] * 10) / 10 : null;
       const name = p.product_name || p.generic_name || 'Scanned product';
+      const productServingG = parseServingGrams(p.serving_size);
 
-      setProduct({
-        name,
-        calories: kcal,
-        protein,
-        carbs,
-        fat,
-        per100g: { kcal, protein, carbs, fat },
-      });
+      setProduct({ name, calories: kcal, protein, carbs, fat, per100g: { kcal, protein, carbs, fat }, productServingG });
+
+      // Default to 'stk' (one serving) if product has a serving size, otherwise grams
+      setServingUnit(productServingG ? 'stk' : 'g');
+      setServingQty('1');
       setStatus('found');
     } catch {
       if (!cancelledRef.current) {
@@ -99,10 +133,19 @@ export default function BarcodeScanner({ onAdd, onClose }: Props) {
     }
   }
 
+  function getServingGrams(): number {
+    const qty = parseFloat(servingQty) || 1;
+    if (servingUnit === 'stk' && product?.productServingG) {
+      return qty * product.productServingG;
+    }
+    return qty * UNIT_TO_G[servingUnit];
+  }
+
   function scaledNutrition() {
-    if (!product) return product;
-    const s = parseFloat(serving) / 100;
-    if (isNaN(s) || s <= 0) return product;
+    if (!product) return null;
+    const grams = getServingGrams();
+    const s = grams / 100;
+    if (s <= 0) return null;
     return {
       ...product,
       calories: Math.round(product.per100g.kcal * s),
@@ -118,6 +161,15 @@ export default function BarcodeScanner({ onAdd, onClose }: Props) {
     onAdd({ name: scaled.name, calories: scaled.calories, protein: scaled.protein, carbs: scaled.carbs, fat: scaled.fat, mealType });
     onClose();
   }
+
+  const QUICK_PRESETS: { label: string; qty: string; unit: ServingUnit }[] = [
+    { label: '1 tske', qty: '1', unit: 'tsp' },
+    { label: '1 spsk', qty: '1', unit: 'tbsp' },
+    { label: '2 spsk', qty: '2', unit: 'tbsp' },
+    { label: '3 spsk', qty: '3', unit: 'tbsp' },
+    { label: '50g', qty: '50', unit: 'g' },
+    { label: '100g', qty: '100', unit: 'g' },
+  ];
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 pb-20 sm:pb-4">
@@ -148,7 +200,7 @@ export default function BarcodeScanner({ onAdd, onClose }: Props) {
             </div>
             <div className="text-center">
               <p className="text-white font-medium text-sm">Scan a barcode</p>
-              <p className="text-slate-500 text-xs mt-1">Your camera will be used to read the barcode</p>
+              <p className="text-slate-500 text-xs mt-1">Point your back camera at the barcode</p>
             </div>
             <button onClick={startCamera}
               className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-6 py-2.5 rounded-xl transition-colors">
@@ -159,12 +211,16 @@ export default function BarcodeScanner({ onAdd, onClose }: Props) {
 
         {/* Camera view */}
         {(status === 'requesting' || status === 'scanning') && (
-          <div className="relative bg-black aspect-square">
-            <video ref={videoRef} className="w-full h-full object-cover" />
+          <div className="relative bg-black" style={{ aspectRatio: '4/3' }}>
+            <video ref={videoRef} className="w-full h-full object-cover" playsInline />
             {/* Viewfinder overlay */}
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-48 h-48 border-2 border-blue-400/70 rounded-xl" style={{ boxShadow: '0 0 0 9999px rgba(0,0,0,0.45)' }} />
+              <div className="w-56 h-36 border-2 border-blue-400/80 rounded-xl"
+                style={{ boxShadow: '0 0 0 9999px rgba(0,0,0,0.5)' }} />
             </div>
+            <p className="absolute bottom-3 left-0 right-0 text-center text-white/70 text-xs">
+              Hold steady — centre the barcode in the box
+            </p>
             {status === 'requesting' && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/60">
                 <p className="text-white text-sm">{t('scan_requesting')}</p>
@@ -191,7 +247,8 @@ export default function BarcodeScanner({ onAdd, onClose }: Props) {
           <div className="p-6 text-center space-y-4">
             <div className="text-4xl">😕</div>
             <p className="text-slate-300 text-sm">{errorMsg}</p>
-            <button onClick={() => { controlsRef.current?.stop(); setStatus('idle'); }} className="text-blue-400 text-sm hover:text-blue-300">Try again</button>
+            <button onClick={() => { controlsRef.current?.stop(); setStatus('idle'); }}
+              className="text-blue-400 text-sm hover:text-blue-300">Try again</button>
           </div>
         )}
 
@@ -199,20 +256,67 @@ export default function BarcodeScanner({ onAdd, onClose }: Props) {
           <div className="p-5 space-y-4">
             <div className="bg-slate-800 rounded-xl p-4">
               <p className="font-semibold text-white text-base leading-tight">{product.name}</p>
-              <p className="text-xs text-slate-400 mt-1">{t('scan_per_100g')}: {product.per100g.kcal} kcal
+              <p className="text-xs text-slate-400 mt-1">
+                Per 100g: {product.per100g.kcal} kcal
                 {product.per100g.protein != null && ` · P: ${product.per100g.protein}g`}
                 {product.per100g.carbs != null && ` · C: ${product.per100g.carbs}g`}
                 {product.per100g.fat != null && ` · F: ${product.per100g.fat}g`}
               </p>
+              {product.productServingG && (
+                <p className="text-xs text-blue-400/70 mt-0.5">1 serving = {product.productServingG}g</p>
+              )}
             </div>
 
+            {/* Serving size with unit picker */}
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">{t('scan_serving')}</label>
-              <input type="number" value={serving} onChange={e => setServing(e.target.value)}
-                min={1} step={10}
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-blue-500" />
+              <label className="block text-xs font-medium text-slate-400 mb-1.5">How much did you use?</label>
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  value={servingQty}
+                  onChange={e => setServingQty(e.target.value)}
+                  min={0.1}
+                  step={0.5}
+                  className="w-24 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-blue-500"
+                />
+                <div className="flex flex-1 gap-1">
+                  {(Object.keys(UNIT_LABELS) as ServingUnit[])
+                    .filter(u => u !== 'stk' || product.productServingG != null)
+                    .map(u => (
+                    <button key={u} onClick={() => setServingUnit(u)}
+                      className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${
+                        servingUnit === u ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                      }`}>
+                      {UNIT_LABELS[u]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {/* Quick presets */}
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {product.productServingG && (
+                  <button onClick={() => { setServingQty('1'); setServingUnit('stk'); }}
+                    className={`px-2.5 py-1 rounded-lg text-xs transition-colors ${
+                      servingUnit === 'stk' && servingQty === '1' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                    }`}>
+                    1 stk ({product.productServingG}g)
+                  </button>
+                )}
+                {QUICK_PRESETS.map(p => (
+                  <button key={p.label} onClick={() => { setServingQty(p.qty); setServingUnit(p.unit); }}
+                    className={`px-2.5 py-1 rounded-lg text-xs transition-colors ${
+                      servingUnit === p.unit && servingQty === p.qty ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                    }`}>
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-slate-600 mt-1.5">
+                = {Math.round(getServingGrams())}g
+              </p>
             </div>
 
+            {/* Nutrition totals */}
             {(() => {
               const s = scaledNutrition();
               if (!s) return null;
