@@ -11,6 +11,10 @@ import InAppBrowserWarning from '@/components/InAppBrowserWarning';
 export const metadata: Metadata = {
   title: 'FitTrack',
   description: 'Track nutrition and workouts with an AI coach',
+  icons: {
+    icon: '/icons/icon-192.png',
+    apple: '/icons/icon-192.png',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
