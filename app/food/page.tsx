@@ -165,7 +165,7 @@ export default function FoodPage() {
     await supabase.from('food_entries').delete().eq('id', id);
   }
 
-  async function handleLogFood(food: LogFood): Promise<boolean> {
+  async function handleLogFood(food: LogFood): Promise<string | null> {
     setSaving(true);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const newEntry: Record<string, any> = {
@@ -183,12 +183,9 @@ export default function FoodPage() {
     }
     const { data, error } = await supabase.from('food_entries').insert(newEntry).select().single();
     setSaving(false);
-    if (error) {
-      setAiError(`Failed to save: [${error.code}] ${error.message}`);
-      return false;
-    }
+    if (error) return `[${error.code}] ${error.message}`;
     if (data) setEntries(prev => [data as FoodEntry, ...prev]);
-    return true;
+    return null;
   }
 
   function openEdit(entry: FoodEntry, e: React.MouseEvent) {
@@ -299,7 +296,7 @@ export default function FoodPage() {
   return (
     <div className="space-y-5">
       {showScanner && (
-        <BarcodeScanner onAdd={food => handleLogFood({ ...food, ingredients: undefined })} onClose={() => setShowScanner(false)} />
+        <BarcodeScanner onAdd={food => { handleLogFood({ ...food, ingredients: undefined }); }} onClose={() => setShowScanner(false)} />
       )}
       {showMealBuilder && (
         <MealBuilder onLog={meal => handleLogFood({ ...meal, ingredients: meal.ingredients })} onClose={() => setShowMealBuilder(false)} />

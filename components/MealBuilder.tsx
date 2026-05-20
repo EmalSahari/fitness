@@ -15,7 +15,7 @@ type BuilderItem = {
 };
 
 type Props = {
-  onLog: (meal: { name: string; calories: number; protein: number | null; carbs: number | null; fat: number | null; mealType: MealType; ingredients: BuilderItem[] }) => Promise<boolean>;
+  onLog: (meal: { name: string; calories: number; protein: number | null; carbs: number | null; fat: number | null; mealType: MealType; ingredients: BuilderItem[] }) => Promise<string | null>;
   onClose: () => void;
 };
 
@@ -85,11 +85,11 @@ export default function MealBuilder({ onLog, onClose }: Props) {
     setLogging(true);
     setLogError('');
     const name = mealName.trim() || 'Homemade meal';
-    const ok = await onLog({ name, calories: totalCal, protein: totalProtein, carbs: totalCarbs, fat: totalFat, mealType, ingredients: items });
-    if (ok) {
+    const err = await onLog({ name, calories: totalCal, protein: totalProtein, carbs: totalCarbs, fat: totalFat, mealType, ingredients: items });
+    if (err === null) {
       onClose();
     } else {
-      setLogError('Failed to save meal. Please try again.');
+      setLogError(err);
       setLogging(false);
     }
   }
