@@ -1,6 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
+export async function GET() {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const { data } = await supabase
+    .from('push_subscriptions')
+    .select('morning_hour, evening_hour')
+    .eq('user_id', user.id)
+    .single();
+
+  return NextResponse.json(data ?? { morning_hour: 8, evening_hour: 19 });
+}
+
 export async function POST(req: NextRequest) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();

@@ -322,9 +322,12 @@ function fmt24(h: number) { return `${String(h).padStart(2,'0')}:00`; }
 function NotificationToggle({ t }: { t: (k: TranslationKey) => string }) {
   const [status, setStatus] = useState<'idle' | 'enabled' | 'denied' | 'unsupported'>('idle');
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [morningHour, setMorningHour] = useState(8);
   const [eveningHour, setEveningHour] = useState(19);
+  const [savedMorning, setSavedMorning] = useState(8);
+  const [savedEvening, setSavedEvening] = useState(19);
 
   useEffect(() => {
     if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
@@ -334,25 +337,34 @@ function NotificationToggle({ t }: { t: (k: TranslationKey) => string }) {
     if (Notification.permission === 'denied') { setStatus('denied'); return; }
     navigator.serviceWorker.ready.then(reg =>
       reg.pushManager.getSubscription().then(sub => {
-        setStatus(sub ? 'enabled' : 'idle');
+        if (sub) {
+          setStatus('enabled');
+          // Load saved times from DB
+          fetch('/api/push/subscribe').then(r => r.json()).then(d => {
+            if (d.morning_hour) { setMorningHour(d.morning_hour); setSavedMorning(d.morning_hour); }
+            if (d.evening_hour) { setEveningHour(d.evening_hour); setSavedEvening(d.evening_hour); }
+          }).catch(() => {});
+        } else {
+          setStatus('idle');
+        }
       })
     ).catch(() => setStatus('idle'));
   }, []);
+
+  const timesChanged = morningHour !== savedMorning || eveningHour !== savedEvening;
 
   async function toggle() {
     setLoading(true);
     setErrorMsg('');
 
-    // Check VAPID key immediately — no point waiting for SW if it's missing
     const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
     if (!vapidKey) {
-      setErrorMsg('Not configured — add NEXT_PUBLIC_VAPID_PUBLIC_KEY to Vercel env vars, then redeploy.');
+      setErrorMsg('Push not configured. Contact support.');
       setLoading(false);
       return;
     }
 
     try {
-      // serviceWorker.ready can hang if SW is stuck — cap at 8s
       const swReady = Promise.race([
         navigator.serviceWorker.ready,
         new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Service worker timed out. Try reloading the page.')), 8000)),
@@ -383,6 +395,8 @@ function NotificationToggle({ t }: { t: (k: TranslationKey) => string }) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ subscription: sub, morningHour, eveningHour }),
         });
+        setSavedMorning(morningHour);
+        setSavedEvening(eveningHour);
         setStatus('enabled');
       }
     } catch (err) {
@@ -390,6 +404,24 @@ function NotificationToggle({ t }: { t: (k: TranslationKey) => string }) {
       setErrorMsg(msg);
     }
     setLoading(false);
+  }
+
+  async function saveTimes() {
+    setSaving(true);
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      await fetch('/api/push/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription: sub, morningHour, eveningHour }),
+      });
+      setSavedMorning(morningHour);
+      setSavedEvening(eveningHour);
+    } catch {
+      setErrorMsg('Could not save times. Try again.');
+    }
+    setSaving(false);
   }
 
   if (status === 'unsupported') return null;
@@ -400,7 +432,11 @@ function NotificationToggle({ t }: { t: (k: TranslationKey) => string }) {
         <div>
           <h2 className="text-sm font-semibold text-white">{t('notif_title')}</h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            {status === 'denied' ? t('notif_denied') : t('notif_subtitle')}
+            {status === 'denied'
+              ? t('notif_denied')
+              : status === 'enabled'
+              ? `${fmt24(savedMorning)} & ${fmt24(savedEvening)}`
+              : t('notif_subtitle')}
           </p>
         </div>
         {status !== 'denied' && (
@@ -413,10 +449,12 @@ function NotificationToggle({ t }: { t: (k: TranslationKey) => string }) {
           </button>
         )}
       </div>
+
       {errorMsg && (
         <p className="text-xs text-red-400 mt-3 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{errorMsg}</p>
       )}
-      {status !== 'denied' && !errorMsg && (
+
+      {status !== 'denied' && (
         <div className="mt-4 grid grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-medium text-slate-400 mb-1.5">{t('notif_morning_label')}</label>
@@ -440,8 +478,19 @@ function NotificationToggle({ t }: { t: (k: TranslationKey) => string }) {
           </div>
         </div>
       )}
-      {status === 'enabled' && !errorMsg && (
-        <p className="text-xs text-slate-500 mt-2">{t('notif_time_note')}</p>
+
+      {status === 'enabled' && timesChanged && (
+        <button
+          onClick={saveTimes}
+          disabled={saving}
+          className="mt-3 w-full bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 text-white text-sm font-medium py-2 rounded-lg transition-colors"
+        >
+          {saving ? '…' : t('acc_save')}
+        </button>
+      )}
+
+      {status === 'idle' && (
+        <p className="text-xs text-slate-500 mt-3">{t('notif_subtitle')}</p>
       )}
     </div>
   );
