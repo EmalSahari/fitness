@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { createClient } from '@/lib/supabase/server';
 
-const MAX_INPUT = 300;
+const MAX_INPUT = 1000;
 
 function getOpenAI() {
   return new OpenAI({ apiKey: process.env.OPENAI_API_KEY ?? '' });
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No description provided.' }, { status: 400 });
   }
   if (description.length > MAX_INPUT) {
-    return NextResponse.json({ error: 'Description too long. Max 300 characters.' }, { status: 400 });
+    return NextResponse.json({ error: 'Description too long. Max 1000 characters.' }, { status: 400 });
   }
 
   const completion = await getOpenAI().chat.completions.create({

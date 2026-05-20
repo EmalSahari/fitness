@@ -3,7 +3,7 @@ import OpenAI from 'openai';
 import { FoodEntry, WorkoutEntry } from '@/lib/types';
 import { createClient } from '@/lib/supabase/server';
 
-const MAX_MESSAGE_LENGTH = 500;
+const MAX_MESSAGE_LENGTH = 1000;
 const MAX_MESSAGES_IN_HISTORY = 20;
 
 function getOpenAI() {
@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
   // Validate last user message length
   const lastMessage = messages[messages.length - 1];
   if (lastMessage?.role === 'user' && lastMessage.content.length > MAX_MESSAGE_LENGTH) {
-    return NextResponse.json({ error: 'Message too long. Please keep it under 500 characters.' }, { status: 400 });
+    return NextResponse.json({ error: 'Message too long. Please keep it under 1000 characters.' }, { status: 400 });
   }
 
   // Cap history to prevent token bloat from long conversations
