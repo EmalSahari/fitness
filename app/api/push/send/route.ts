@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import webpush from 'web-push';
+
+export const dynamic = 'force-dynamic';
 import { createClient } from '@/lib/supabase/server';
 
 // Called by Vercel Cron — secured by CRON_SECRET header
