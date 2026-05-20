@@ -22,49 +22,51 @@ export default function BarcodeScanner({ onAdd, onClose }: Props) {
   const { t } = useAuth();
   const videoRef = useRef<HTMLVideoElement>(null);
   const controlsRef = useRef<{ stop: () => void } | null>(null);
-  const [status, setStatus] = useState<'requesting' | 'scanning' | 'fetching' | 'found' | 'error' | 'unsupported'>('requesting');
+  const [status, setStatus] = useState<'idle' | 'requesting' | 'scanning' | 'fetching' | 'found' | 'error' | 'unsupported'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
   const [product, setProduct] = useState<ScannedFood | null>(null);
   const [serving, setServing] = useState('100');
   const [mealType, setMealType] = useState<MealType>('lunch');
+  const cancelledRef = useRef(false);
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function start() {
-      try {
-        const { BrowserMultiFormatReader } = await import('@zxing/browser');
-        const reader = new BrowserMultiFormatReader();
-
-        setStatus('scanning');
-        const controls = await reader.decodeFromVideoDevice(undefined, videoRef.current!, async (result, err) => {
-          if (cancelled) return;
-          void err;
-          if (result) {
-            controls?.stop();
-            const barcode = result.getText();
-            setStatus('fetching');
-            await lookupBarcode(barcode, cancelled);
-          }
-        });
-        controlsRef.current = controls;
-      } catch {
-        if (!cancelled) setStatus('unsupported');
-      }
-    }
-
-    start();
+    cancelledRef.current = false;
     return () => {
-      cancelled = true;
+      cancelledRef.current = true;
       controlsRef.current?.stop();
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
-  async function lookupBarcode(barcode: string, cancelled: boolean) {
+  async function startCamera() {
+    if (status !== 'idle' && status !== 'error') return;
+    setStatus('requesting');
+    const cancelled = cancelledRef;
+    try {
+      const { BrowserMultiFormatReader } = await import('@zxing/browser');
+      const reader = new BrowserMultiFormatReader();
+
+      setStatus('scanning');
+      const controls = await reader.decodeFromVideoDevice(undefined, videoRef.current!, async (result, err) => {
+        if (cancelled.current) return;
+        void err;
+        if (result) {
+          controls?.stop();
+          const barcode = result.getText();
+          setStatus('fetching');
+          await lookupBarcode(barcode);
+        }
+      });
+      controlsRef.current = controls;
+    } catch {
+      if (!cancelled.current) setStatus('unsupported');
+    }
+  }
+
+  async function lookupBarcode(barcode: string) {
     try {
       const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
       const json = await res.json();
-      if (cancelled) return;
+      if (cancelledRef.current) return;
 
       if (json.status !== 1 || !json.product) {
         setStatus('error');
@@ -90,7 +92,7 @@ export default function BarcodeScanner({ onAdd, onClose }: Props) {
       });
       setStatus('found');
     } catch {
-      if (!cancelled) {
+      if (!cancelledRef.current) {
         setStatus('error');
         setErrorMsg(t('scan_error'));
       }
@@ -135,6 +137,26 @@ export default function BarcodeScanner({ onAdd, onClose }: Props) {
           </button>
         </div>
 
+        {/* Idle — tap to start */}
+        {status === 'idle' && (
+          <div className="flex flex-col items-center justify-center gap-4 py-10 px-6">
+            <div className="w-16 h-16 rounded-full bg-blue-600/15 border border-blue-500/30 flex items-center justify-center">
+              <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
+              </svg>
+            </div>
+            <div className="text-center">
+              <p className="text-white font-medium text-sm">Scan a barcode</p>
+              <p className="text-slate-500 text-xs mt-1">Your camera will be used to read the barcode</p>
+            </div>
+            <button onClick={startCamera}
+              className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-6 py-2.5 rounded-xl transition-colors">
+              Start camera
+            </button>
+          </div>
+        )}
+
         {/* Camera view */}
         {(status === 'requesting' || status === 'scanning') && (
           <div className="relative bg-black aspect-square">
@@ -169,7 +191,7 @@ export default function BarcodeScanner({ onAdd, onClose }: Props) {
           <div className="p-6 text-center space-y-4">
             <div className="text-4xl">😕</div>
             <p className="text-slate-300 text-sm">{errorMsg}</p>
-            <button onClick={() => { controlsRef.current?.stop(); setStatus('requesting'); }} className="text-blue-400 text-sm hover:text-blue-300">Try again</button>
+            <button onClick={() => { controlsRef.current?.stop(); setStatus('idle'); }} className="text-blue-400 text-sm hover:text-blue-300">Try again</button>
           </div>
         )}
 
