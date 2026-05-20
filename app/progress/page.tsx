@@ -7,6 +7,7 @@ import { ProgressSkeleton } from '@/components/Skeleton';
 import { getTodayDate, getLastNDays } from '@/lib/utils';
 import type { WeightEntry, FoodEntry, WorkoutEntry } from '@/lib/types';
 import { getCached, setCached } from '@/lib/cache';
+import ProgressPhotos from '@/components/ProgressPhotos';
 
 type Period = '7d' | '30d' | '3m';
 type Insight = { type: 'positive' | 'warning' | 'suggestion'; title: string; text: string };
@@ -617,6 +618,9 @@ export default function ProgressPage() {
           </div>
         )}
       </div>
+
+      {/* Progress photos */}
+      <ProgressPhotos userId={user.id} />
 
       {/* Weight history */}
       {weightEntries.length > 0 && (
