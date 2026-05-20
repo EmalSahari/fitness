@@ -6,6 +6,7 @@ import MainLayout from '@/components/MainLayout';
 import RegisterSW from '@/components/RegisterSW';
 import FeedbackButton from '@/components/FeedbackButton';
 import InstallPrompt from '@/components/InstallPrompt';
+import InAppBrowserWarning from '@/components/InAppBrowserWarning';
 
 export const metadata: Metadata = {
   title: 'FitTrack',
@@ -33,6 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>
       <body className="bg-slate-950 text-white min-h-screen">
+        <InAppBrowserWarning />
         <RegisterSW />
         <AuthProvider>
           <div className="flex min-h-screen">
