@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { ProgressSkeleton } from '@/components/Skeleton';
 import { getTodayDate, getLastNDays } from '@/lib/utils';
 import type { WeightEntry, FoodEntry, WorkoutEntry } from '@/lib/types';
+import { getCached, setCached } from '@/lib/cache';
 
 type Period = '7d' | '30d' | '3m';
 type Insight = { type: 'positive' | 'warning' | 'suggestion'; title: string; text: string };
@@ -218,6 +219,17 @@ export default function ProgressPage() {
 
   const fetchData = useCallback(async () => {
     if (!user) return;
+    const cacheKey = `progress_${user.id}_${period}_${startDate}`;
+    type ProgCache = { w: WeightEntry[]; f: FoodEntry[]; wo: WorkoutEntry[]; s: { goal?: string; custom_goal_text?: string; height_cm?: number } | null };
+    const cached = getCached<ProgCache>(cacheKey);
+    if (cached) {
+      setWeightEntries(cached.w);
+      setFoodEntries(cached.f);
+      setWorkoutEntries(cached.wo);
+      setUserStats(cached.s);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const weightLimit = period === '3m' ? 90 : period === '30d' ? 30 : 20;
     const [w, f, wo, s] = await Promise.all([
@@ -226,10 +238,15 @@ export default function ProgressPage() {
       supabase.from('workout_entries').select('*').eq('user_id', user.id).gte('date', startDate).lte('date', today),
       supabase.from('user_stats').select('goal, custom_goal_text, height_cm').eq('user_id', user.id).maybeSingle(),
     ]);
-    setWeightEntries((w.data ?? []) as WeightEntry[]);
-    setFoodEntries((f.data ?? []) as FoodEntry[]);
-    setWorkoutEntries((wo.data ?? []) as WorkoutEntry[]);
-    setUserStats(s.data ?? null);
+    const wData = (w.data ?? []) as WeightEntry[];
+    const fData = (f.data ?? []) as FoodEntry[];
+    const woData = (wo.data ?? []) as WorkoutEntry[];
+    const sData = s.data ?? null;
+    setCached(cacheKey, { w: wData, f: fData, wo: woData, s: sData });
+    setWeightEntries(wData);
+    setFoodEntries(fData);
+    setWorkoutEntries(woData);
+    setUserStats(sData);
     setLoading(false);
   }, [user, period]); // eslint-disable-line react-hooks/exhaustive-deps
 

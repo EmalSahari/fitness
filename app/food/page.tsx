@@ -9,6 +9,7 @@ import AiPromptInput from '@/components/AiPromptInput';
 import BarcodeScanner from '@/components/BarcodeScanner';
 import MealBuilder from '@/components/MealBuilder';
 import { FoodSkeleton } from '@/components/Skeleton';
+import { invalidateCache } from '@/lib/cache';
 
 const MEAL_TYPES: MealType[] = ['breakfast', 'lunch', 'dinner', 'snack'];
 
@@ -151,7 +152,7 @@ export default function FoodPage() {
       date: today,
     };
     const { data } = await supabase.from('food_entries').insert(newEntry).select().single();
-    if (data) setEntries(prev => [data as FoodEntry, ...prev]);
+    if (data) { setEntries(prev => [data as FoodEntry, ...prev]); invalidateCache('dash_', 'progress_'); }
     setForm(DEFAULT_FORM);
     setError('');
     setShowForm(false);
@@ -163,6 +164,7 @@ export default function FoodPage() {
     setEntries(prev => prev.filter(e => e.id !== id));
     if (expandedId === id) setExpandedId(null);
     await supabase.from('food_entries').delete().eq('id', id);
+    invalidateCache('dash_', 'progress_');
   }
 
   async function handleLogFood(food: LogFood): Promise<string | null> {
@@ -185,7 +187,7 @@ export default function FoodPage() {
     if (error) { setSaving(false); return `[${error.code}] ${error.message}`; }
     if (!data) { setSaving(false); return 'No data returned.'; }
 
-    if (data) setEntries(prev => [data as FoodEntry, ...prev]);
+    if (data) { setEntries(prev => [data as FoodEntry, ...prev]); invalidateCache('dash_', 'progress_'); }
     setSaving(false);
     return null;
   }

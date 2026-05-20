@@ -8,6 +8,7 @@ import { getTodayDate, getLast7Days } from '@/lib/utils';
 import type { WorkoutEntry, WorkoutType } from '@/lib/types';
 import type { TranslationKey } from '@/lib/i18n/en';
 import AiPromptInput from '@/components/AiPromptInput';
+import { invalidateCache } from '@/lib/cache';
 
 const WORKOUT_TYPES: { value: WorkoutType; icon: string; labelKey: TranslationKey }[] = [
   { value: 'cardio',    icon: '🏃', labelKey: 'workout_cardio' },
@@ -96,7 +97,7 @@ export default function WorkoutsPage() {
     setSaving(true);
     const newEntry = { user_id: user!.id, name: form.name.trim(), type: form.type, duration: dur, calories_burned: cal, date: today };
     const { data } = await supabase.from('workout_entries').insert(newEntry).select().single();
-    if (data) setEntries(prev => [data as WorkoutEntry, ...prev]);
+    if (data) { setEntries(prev => [data as WorkoutEntry, ...prev]); invalidateCache('dash_', 'progress_'); }
     setForm(DEFAULT_FORM);
     setError('');
     setShowForm(false);
@@ -106,6 +107,7 @@ export default function WorkoutsPage() {
   async function handleDelete(id: string) {
     setEntries(prev => prev.filter(e => e.id !== id));
     await supabase.from('workout_entries').delete().eq('id', id);
+    invalidateCache('dash_', 'progress_');
   }
 
   const todayEntries = entries.filter(e => e.date === today);

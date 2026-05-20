@@ -10,6 +10,7 @@ import { calculateStreak, calculateBadges } from '@/lib/streak';
 import type { FoodEntry, WorkoutEntry, WeightEntry } from '@/lib/types';
 import { DashboardSkeleton } from '@/components/Skeleton';
 import type { TranslationKey } from '@/lib/i18n/en';
+import { getCached, setCached, invalidateCache } from '@/lib/cache';
 
 const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
 
@@ -136,6 +137,18 @@ export default function DashboardPage() {
     if (authLoading) return;
     if (!user) { setDataLoading(false); return; }
     async function load() {
+      const cacheKey = `dash_${user!.id}_${today}`;
+      type DashCache = { food: FoodEntry[]; workouts: WorkoutEntry[]; weight: WeightEntry | null; dates: string[]; workoutCount: number };
+      const cached = getCached<DashCache>(cacheKey);
+      if (cached) {
+        setFoodEntries(cached.food);
+        setWorkoutEntries(cached.workouts);
+        setLatestWeight(cached.weight);
+        setAllFoodDates(cached.dates);
+        setTotalWorkoutCount(cached.workoutCount);
+        setDataLoading(false);
+        return;
+      }
       const [foodRes, workoutRes, weightRes, allDatesRes, totalWorkoutsRes] = await Promise.all([
         supabase.from('food_entries').select('*').eq('user_id', user!.id).eq('date', today).order('created_at', { ascending: false }),
         supabase.from('workout_entries').select('*').eq('user_id', user!.id).in('date', last7).order('created_at', { ascending: false }),
@@ -143,11 +156,17 @@ export default function DashboardPage() {
         supabase.from('food_entries').select('date').eq('user_id', user!.id),
         supabase.from('workout_entries').select('id', { count: 'exact', head: true }).eq('user_id', user!.id),
       ]);
-      setFoodEntries((foodRes.data ?? []) as FoodEntry[]);
-      setWorkoutEntries((workoutRes.data ?? []) as WorkoutEntry[]);
-      setLatestWeight(((weightRes.data ?? [])[0] ?? null) as WeightEntry | null);
-      setAllFoodDates(((allDatesRes.data ?? []) as { date: string }[]).map(r => r.date));
-      setTotalWorkoutCount(totalWorkoutsRes.count ?? 0);
+      const food = (foodRes.data ?? []) as FoodEntry[];
+      const workouts = (workoutRes.data ?? []) as WorkoutEntry[];
+      const weight = ((weightRes.data ?? [])[0] ?? null) as WeightEntry | null;
+      const dates = ((allDatesRes.data ?? []) as { date: string }[]).map(r => r.date);
+      const workoutCount = totalWorkoutsRes.count ?? 0;
+      setCached(cacheKey, { food, workouts, weight, dates, workoutCount });
+      setFoodEntries(food);
+      setWorkoutEntries(workouts);
+      setLatestWeight(weight);
+      setAllFoodDates(dates);
+      setTotalWorkoutCount(workoutCount);
       setDataLoading(false);
     }
     load();
