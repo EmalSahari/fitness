@@ -345,7 +345,12 @@ function NotificationToggle({ t }: { t: (k: TranslationKey) => string }) {
         const permission = await Notification.requestPermission();
         if (permission !== 'granted') { setStatus('denied'); setLoading(false); return; }
 
-        const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!;
+        const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+        if (!vapidKey) {
+          alert('Push notifications are not configured yet. Add NEXT_PUBLIC_VAPID_PUBLIC_KEY to Vercel environment variables.');
+          setLoading(false);
+          return;
+        }
         const sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(vapidKey),
@@ -353,7 +358,9 @@ function NotificationToggle({ t }: { t: (k: TranslationKey) => string }) {
         await fetch('/api/push/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: sub }) });
         setStatus('enabled');
       }
-    } catch { /* ignore */ }
+    } catch (err) {
+      console.error('Push subscription error:', err);
+    }
     setLoading(false);
   }
 
