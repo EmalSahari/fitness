@@ -167,8 +167,8 @@ export default function FoodPage() {
 
   async function handleLogFood(food: LogFood): Promise<string | null> {
     setSaving(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const newEntry: Record<string, any> = {
+    // Insert base row — never includes ingredients to avoid PGRST204 schema cache error
+    const { data, error } = await supabase.from('food_entries').insert({
       user_id: user!.id,
       name: food.name,
       calories: food.calories,
@@ -177,14 +177,28 @@ export default function FoodPage() {
       carbs: food.carbs,
       fat: food.fat,
       date: today,
-    };
+    }).select().single();
+    if (error) { setSaving(false); return `[${error.code}] ${error.message}`; }
+    if (!data) { setSaving(false); return 'No data returned.'; }
+
+    // Set ingredients via RPC — bypasses PostgREST column schema cache
     if (food.ingredients && food.ingredients.length > 0) {
-      newEntry.ingredients = food.ingredients;
+      const { error: rpcErr } = await supabase.rpc('set_food_ingredients', {
+        p_id: data.id,
+        p_user_id: user!.id,
+        p_ingredients: food.ingredients,
+      });
+      if (rpcErr) {
+        // Row saved without ingredients — report but don't fail
+        setEntries(prev => [data as FoodEntry, ...prev]);
+        setSaving(false);
+        return `Meal saved but ingredients failed: [${rpcErr.code}] ${rpcErr.message}`;
+      }
+      setEntries(prev => [{ ...data, ingredients: food.ingredients } as FoodEntry, ...prev]);
+    } else {
+      setEntries(prev => [data as FoodEntry, ...prev]);
     }
-    const { data, error } = await supabase.from('food_entries').insert(newEntry).select().single();
     setSaving(false);
-    if (error) return `[${error.code}] ${error.message}`;
-    if (data) setEntries(prev => [data as FoodEntry, ...prev]);
     return null;
   }
 
