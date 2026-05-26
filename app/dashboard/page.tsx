@@ -124,6 +124,7 @@ export default function DashboardPage() {
   const [latestWeight, setLatestWeight] = useState<WeightEntry | null>(null);
   const [allFoodDates, setAllFoodDates] = useState<string[]>([]);
   const [totalWorkoutCount, setTotalWorkoutCount] = useState(0);
+  const [fitnessGoal, setFitnessGoal] = useState<string | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
   const [calorieGoalInput, setCalorieGoalInput] = useState('');
 
@@ -138,7 +139,7 @@ export default function DashboardPage() {
     if (!user) { setDataLoading(false); return; }
     async function load() {
       const cacheKey = `dash_${user!.id}_${today}`;
-      type DashCache = { food: FoodEntry[]; workouts: WorkoutEntry[]; weight: WeightEntry | null; dates: string[]; workoutCount: number };
+      type DashCache = { food: FoodEntry[]; workouts: WorkoutEntry[]; weight: WeightEntry | null; dates: string[]; workoutCount: number; goal: string | null };
       const cached = getCached<DashCache>(cacheKey);
       if (cached) {
         setFoodEntries(cached.food);
@@ -146,27 +147,31 @@ export default function DashboardPage() {
         setLatestWeight(cached.weight);
         setAllFoodDates(cached.dates);
         setTotalWorkoutCount(cached.workoutCount);
+        setFitnessGoal(cached.goal);
         setDataLoading(false);
         return;
       }
-      const [foodRes, workoutRes, weightRes, allDatesRes, totalWorkoutsRes] = await Promise.all([
+      const [foodRes, workoutRes, weightRes, allDatesRes, totalWorkoutsRes, statsRes] = await Promise.all([
         supabase.from('food_entries').select('*').eq('user_id', user!.id).eq('date', today).order('created_at', { ascending: false }),
         supabase.from('workout_entries').select('*').eq('user_id', user!.id).in('date', last7).order('created_at', { ascending: false }),
         supabase.from('weight_entries').select('*').eq('user_id', user!.id).order('date', { ascending: false }).limit(1),
         supabase.from('food_entries').select('date').eq('user_id', user!.id),
         supabase.from('workout_entries').select('id', { count: 'exact', head: true }).eq('user_id', user!.id),
+        supabase.from('user_stats').select('goal').eq('user_id', user!.id).maybeSingle(),
       ]);
       const food = (foodRes.data ?? []) as FoodEntry[];
       const workouts = (workoutRes.data ?? []) as WorkoutEntry[];
       const weight = ((weightRes.data ?? [])[0] ?? null) as WeightEntry | null;
       const dates = ((allDatesRes.data ?? []) as { date: string }[]).map(r => r.date);
       const workoutCount = totalWorkoutsRes.count ?? 0;
-      setCached(cacheKey, { food, workouts, weight, dates, workoutCount });
+      const goal = (statsRes.data as { goal?: string } | null)?.goal ?? null;
+      setCached(cacheKey, { food, workouts, weight, dates, workoutCount, goal });
       setFoodEntries(food);
       setWorkoutEntries(workouts);
       setLatestWeight(weight);
       setAllFoodDates(dates);
       setTotalWorkoutCount(workoutCount);
+      setFitnessGoal(goal);
       setDataLoading(false);
     }
     load();
@@ -181,8 +186,18 @@ export default function DashboardPage() {
   const badges = calculateBadges(streak, totalWorkoutCount, allFoodDates.length > 0);
   const goal = profile?.calorie_goal ?? 2000;
   const proteinGoal = profile?.protein_goal ?? 150;
-  const carbGoal    = Math.round((goal * 0.45) / 4);   // 45% of calories ÷ 4 kcal/g
-  const fatGoal     = Math.round((goal * 0.30) / 9);   // 30% of calories ÷ 9 kcal/g
+
+  // Macro ratios adjusted per fitness goal
+  const macroRatios: Record<string, { carb: number; fat: number }> = {
+    lose_fat:     { carb: 0.35, fat: 0.25 }, // lower carbs, moderate fat — protein high
+    build_muscle: { carb: 0.50, fat: 0.25 }, // more carbs for fuel and recovery
+    maintain:     { carb: 0.45, fat: 0.30 }, // balanced
+    performance:  { carb: 0.55, fat: 0.20 }, // max carbs for output
+    custom:       { carb: 0.45, fat: 0.30 }, // fallback balanced
+  };
+  const ratios = macroRatios[fitnessGoal ?? ''] ?? macroRatios.maintain;
+  const carbGoal = Math.round((goal * ratios.carb) / 4);
+  const fatGoal  = Math.round((goal * ratios.fat)  / 9);
 
   const totalCalIn = todayFood.reduce((s, e) => s + e.calories, 0);
   const totalCalBurned = todayWorkouts.reduce((s, e) => s + e.calories_burned, 0);
