@@ -181,6 +181,8 @@ export default function DashboardPage() {
   const badges = calculateBadges(streak, totalWorkoutCount, allFoodDates.length > 0);
   const goal = profile?.calorie_goal ?? 2000;
   const proteinGoal = profile?.protein_goal ?? 150;
+  const carbGoal    = Math.round((goal * 0.45) / 4);   // 45% of calories ÷ 4 kcal/g
+  const fatGoal     = Math.round((goal * 0.30) / 9);   // 30% of calories ÷ 9 kcal/g
 
   const totalCalIn = todayFood.reduce((s, e) => s + e.calories, 0);
   const totalCalBurned = todayWorkouts.reduce((s, e) => s + e.calories_burned, 0);
@@ -280,8 +282,36 @@ export default function DashboardPage() {
               : `${Math.round(proteinGoal - totalProtein)}g to go`}
           </p>
         </div>
-        <StatCard value={Math.round(totalCarbs)}   unit="g" label={t('dash_carbs')}       color="text-amber-400"  bg="bg-amber-500/10"  glowColor="#f59e0b" />
-        <StatCard value={Math.round(totalFat)}     unit="g" label={t('dash_fat')}         color="text-pink-400"   bg="bg-pink-500/10"   glowColor="#ec4899" />
+        {/* Carbs goal card */}
+        <div className="bg-slate-900 rounded-xl p-4 space-y-2" style={{ border: '1px solid rgba(245,158,11,0.2)' }}>
+          <div className="flex items-end justify-between">
+            <span className="text-xs font-medium text-slate-400">{t('dash_carbs')}</span>
+            <span className="text-xs text-slate-500">{Math.round(totalCarbs)}g / {carbGoal}g</span>
+          </div>
+          <div className="text-2xl font-bold text-amber-400">{Math.round(totalCarbs)}<span className="text-sm font-normal text-slate-500 ml-1">g</span></div>
+          <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+            <div className="h-full bg-amber-500 rounded-full transition-all duration-700"
+              style={{ width: `${Math.min((totalCarbs / carbGoal) * 100, 100)}%` }} />
+          </div>
+          <p className="text-xs text-slate-500">
+            {totalCarbs >= carbGoal ? '✓ Goal reached' : `${Math.round(carbGoal - totalCarbs)}g to go`}
+          </p>
+        </div>
+        {/* Fat goal card */}
+        <div className="bg-slate-900 rounded-xl p-4 space-y-2" style={{ border: '1px solid rgba(236,72,153,0.2)' }}>
+          <div className="flex items-end justify-between">
+            <span className="text-xs font-medium text-slate-400">{t('dash_fat')}</span>
+            <span className="text-xs text-slate-500">{Math.round(totalFat)}g / {fatGoal}g</span>
+          </div>
+          <div className="text-2xl font-bold text-pink-400">{Math.round(totalFat)}<span className="text-sm font-normal text-slate-500 ml-1">g</span></div>
+          <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+            <div className="h-full bg-pink-500 rounded-full transition-all duration-700"
+              style={{ width: `${Math.min((totalFat / fatGoal) * 100, 100)}%` }} />
+          </div>
+          <p className="text-xs text-slate-500">
+            {totalFat >= fatGoal ? '✓ Goal reached' : `${Math.round(fatGoal - totalFat)}g to go`}
+          </p>
+        </div>
       </div>
       {/* Workout stat */}
       <div className="grid grid-cols-1">
