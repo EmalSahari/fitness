@@ -33,14 +33,24 @@ export default function MealBuilder({ onLog, onClose }: Props) {
   const [showScanner, setShowScanner] = useState(false);
   const [logging, setLogging] = useState(false);
   const [logError, setLogError] = useState('');
+  const [portion, setPortion] = useState(1);
 
-  const totalCal = items.reduce((s, i) => s + i.calories, 0);
-  const totalProtein = items.some(i => i.protein != null)
-    ? Math.round(items.reduce((s, i) => s + (i.protein ?? 0), 0) * 10) / 10 : null;
-  const totalCarbs = items.some(i => i.carbs != null)
-    ? Math.round(items.reduce((s, i) => s + (i.carbs ?? 0), 0) * 10) / 10 : null;
-  const totalFat = items.some(i => i.fat != null)
-    ? Math.round(items.reduce((s, i) => s + (i.fat ?? 0), 0) * 10) / 10 : null;
+  const PORTIONS = [
+    { value: 0.25, label: '¼' },
+    { value: 0.5,  label: '½' },
+    { value: 0.75, label: '¾' },
+    { value: 1,    label: 'Full' },
+  ];
+
+  const rawCal     = items.reduce((s, i) => s + i.calories, 0);
+  const rawProtein = items.some(i => i.protein != null) ? items.reduce((s, i) => s + (i.protein ?? 0), 0) : null;
+  const rawCarbs   = items.some(i => i.carbs != null)   ? items.reduce((s, i) => s + (i.carbs ?? 0), 0)   : null;
+  const rawFat     = items.some(i => i.fat != null)     ? items.reduce((s, i) => s + (i.fat ?? 0), 0)     : null;
+
+  const totalCal     = Math.round(rawCal * portion);
+  const totalProtein = rawProtein != null ? Math.round(rawProtein * portion * 10) / 10 : null;
+  const totalCarbs   = rawCarbs   != null ? Math.round(rawCarbs   * portion * 10) / 10 : null;
+  const totalFat     = rawFat     != null ? Math.round(rawFat     * portion * 10) / 10 : null;
 
   function addItem(item: Omit<BuilderItem, 'id'>) {
     setItems(prev => [...prev, { ...item, id: crypto.randomUUID() }]);
@@ -84,7 +94,9 @@ export default function MealBuilder({ onLog, onClose }: Props) {
     if (items.length === 0) return;
     setLogging(true);
     setLogError('');
-    const name = mealName.trim() || 'Homemade meal';
+    const baseName = mealName.trim() || 'Homemade meal';
+    const portionLabel = PORTIONS.find(p => p.value === portion)?.label ?? '';
+    const name = portion < 1 ? `${baseName} (${portionLabel})` : baseName;
     const err = await onLog({ name, calories: totalCal, protein: totalProtein, carbs: totalCarbs, fat: totalFat, mealType, ingredients: items });
     if (err === null) {
       onClose();
@@ -221,7 +233,30 @@ export default function MealBuilder({ onLog, onClose }: Props) {
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-4 border-t border-slate-800 flex-shrink-0 space-y-2">
+        <div className="px-5 py-4 border-t border-slate-800 flex-shrink-0 space-y-3">
+          {/* Portion selector */}
+          {items.length > 0 && (
+            <div className="space-y-1.5">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">How much did you eat?</p>
+              <div className="flex gap-1.5">
+                {PORTIONS.map(p => (
+                  <button key={p.value} onClick={() => setPortion(p.value)}
+                    className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-colors ${
+                      portion === p.value
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                    }`}>
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+              {portion < 1 && (
+                <p className="text-xs text-slate-500 text-center">
+                  Logging {totalCal} kcal · {PORTIONS.find(p2 => p2.value === portion)?.label} of full meal ({rawCal} kcal)
+                </p>
+              )}
+            </div>
+          )}
           {logError && <p className="text-red-400 text-xs text-center break-all">{logError}</p>}
           <button onClick={handleLog} disabled={items.length === 0 || logging}
             className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-500 text-white font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2">
