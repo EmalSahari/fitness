@@ -17,6 +17,7 @@ interface ScannedFood {
 interface Props {
   onAdd: (food: { name: string; calories: number; protein: number | null; carbs: number | null; fat: number | null; mealType: MealType }) => void;
   onClose: () => void;
+  hideMealType?: boolean;
 }
 
 type ServingUnit = 'g' | 'ml' | 'tbsp' | 'tsp' | 'stk';
@@ -43,7 +44,7 @@ function parseServingGrams(servingSize: string | undefined): number | null {
   return match ? parseFloat(match[1]) : null;
 }
 
-export default function BarcodeScanner({ onAdd, onClose }: Props) {
+export default function BarcodeScanner({ onAdd, onClose, hideMealType = false }: Props) {
   const { t } = useAuth();
   const videoRef = useRef<HTMLVideoElement>(null);
   const controlsRef = useRef<{ stop: () => void } | null>(null);
@@ -337,17 +338,19 @@ export default function BarcodeScanner({ onAdd, onClose }: Props) {
               );
             })()}
 
-            <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">Meal type</label>
-              <div className="grid grid-cols-4 gap-1.5">
-                {(['breakfast', 'lunch', 'dinner', 'snack'] as MealType[]).map(m => (
-                  <button key={m} onClick={() => setMealType(m)}
-                    className={`py-1.5 rounded-lg text-xs font-medium transition-colors capitalize ${mealType === m ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>
-                    {m}
-                  </button>
-                ))}
+            {!hideMealType && (
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1.5">Meal type</label>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {(['breakfast', 'lunch', 'dinner', 'snack'] as MealType[]).map(m => (
+                    <button key={m} onClick={() => setMealType(m)}
+                      className={`py-1.5 rounded-lg text-xs font-medium transition-colors capitalize ${mealType === m ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>
+                      {m}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="flex gap-2 pt-1">
               <button onClick={handleAdd}

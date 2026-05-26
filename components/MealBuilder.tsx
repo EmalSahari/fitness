@@ -111,6 +111,7 @@ export default function MealBuilder({ onLog, onClose }: Props) {
       <BarcodeScanner
         onAdd={item => { addItem(item); setShowScanner(false); }}
         onClose={() => setShowScanner(false)}
+        hideMealType
       />
     );
   }
