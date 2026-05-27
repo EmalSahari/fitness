@@ -54,6 +54,7 @@ export default function FoodPage() {
   const [aiConfidence, setAiConfidence] = useState<'high' | 'medium' | 'low' | null>(null);
   const [showScanner, setShowScanner] = useState(false);
   const [showMealBuilder, setShowMealBuilder] = useState(false);
+  const [logDate, setLogDate] = useState(today);
 
   // Expand / edit state
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -149,7 +150,7 @@ export default function FoodPage() {
       protein: form.protein ? parseFloat(form.protein) : null,
       carbs: form.carbs ? parseFloat(form.carbs) : null,
       fat: form.fat ? parseFloat(form.fat) : null,
-      date: today,
+      date: logDate,
     };
     const { data } = await supabase.from('food_entries').insert(newEntry).select().single();
     if (data) { setEntries(prev => [data as FoodEntry, ...prev]); invalidateCache('dash_', 'progress_'); }
@@ -178,7 +179,7 @@ export default function FoodPage() {
       protein: food.protein,
       carbs: food.carbs,
       fat: food.fat,
-      date: today,
+      date: logDate,
     };
     if (food.ingredients && food.ingredients.length > 0) {
       newEntry.ingredients = food.ingredients;
@@ -458,6 +459,21 @@ export default function FoodPage() {
             <span className="xs:hidden">Log</span>
           </button>
         </div>
+      </div>
+
+      {/* Date selector — defaults to today, allows logging past days */}
+      <div className="flex items-center gap-2">
+        <label className="text-xs text-slate-500 whitespace-nowrap">Logging for:</label>
+        <input
+          type="date"
+          value={logDate}
+          max={today}
+          onChange={e => setLogDate(e.target.value)}
+          className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-blue-500"
+        />
+        {logDate !== today && (
+          <button onClick={() => setLogDate(today)} className="text-xs text-slate-400 hover:text-white bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 transition-colors whitespace-nowrap">Today</button>
+        )}
       </div>
 
       {/* AI Quick Log */}

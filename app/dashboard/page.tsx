@@ -11,6 +11,7 @@ import type { FoodEntry, WorkoutEntry, WeightEntry } from '@/lib/types';
 import { DashboardSkeleton } from '@/components/Skeleton';
 import type { TranslationKey } from '@/lib/i18n/en';
 import { getCached, setCached, invalidateCache } from '@/lib/cache';
+import LogPastDayModal from '@/components/LogPastDayModal';
 
 const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
 
@@ -127,6 +128,7 @@ export default function DashboardPage() {
   const [fitnessGoal, setFitnessGoal] = useState<string | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
   const [calorieGoalInput, setCalorieGoalInput] = useState('');
+  const [showLogPastDay, setShowLogPastDay] = useState(false);
 
   useEffect(() => {
     if (!profile) return;
@@ -235,6 +237,15 @@ export default function DashboardPage() {
               </div>
             </div>
           )}
+          <button
+            onClick={() => setShowLogPastDay(true)}
+            className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-sm font-medium px-3 py-2 rounded-lg transition-colors"
+            title="Log a past day">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <span className="hidden sm:inline">Log past day</span>
+          </button>
           <Link href="/coach"
             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-3 py-2 rounded-lg transition-colors">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -456,6 +467,14 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {showLogPastDay && user && (
+        <LogPastDayModal
+          userId={user.id}
+          onClose={() => setShowLogPastDay(false)}
+          onSaved={() => { invalidateCache('dash_', 'progress_'); }}
+        />
+      )}
     </div>
   );
 }

@@ -43,6 +43,8 @@ export default function WorkoutsPage() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const [logDate, setLogDate] = useState(today);
+
   // AI quick-log state
   const [aiInput, setAiInput] = useState('');
   const [aiParsing, setAiParsing] = useState(false);
@@ -95,7 +97,7 @@ export default function WorkoutsPage() {
     if (isNaN(cal) || cal < 0) { setError(t('error_wkt_calories')); return; }
 
     setSaving(true);
-    const newEntry = { user_id: user!.id, name: form.name.trim(), type: form.type, duration: dur, calories_burned: cal, date: today };
+    const newEntry = { user_id: user!.id, name: form.name.trim(), type: form.type, duration: dur, calories_burned: cal, date: logDate };
     const { data } = await supabase.from('workout_entries').insert(newEntry).select().single();
     if (data) { setEntries(prev => [data as WorkoutEntry, ...prev]); invalidateCache('dash_', 'progress_'); }
     setForm(DEFAULT_FORM);
@@ -141,6 +143,21 @@ export default function WorkoutsPage() {
             <p className="text-xs text-slate-400 mt-1">{label}</p>
           </div>
         ))}
+      </div>
+
+      {/* Date selector */}
+      <div className="flex items-center gap-2">
+        <label className="text-xs text-slate-500 whitespace-nowrap">Logging for:</label>
+        <input
+          type="date"
+          value={logDate}
+          max={today}
+          onChange={e => setLogDate(e.target.value)}
+          className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-blue-500"
+        />
+        {logDate !== today && (
+          <button onClick={() => setLogDate(today)} className="text-xs text-slate-400 hover:text-white bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 transition-colors whitespace-nowrap">Today</button>
+        )}
       </div>
 
       {/* AI Quick Log */}
