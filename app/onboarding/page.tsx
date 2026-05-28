@@ -9,7 +9,7 @@ import { calculateTDEE, calorieGoalFromGoal, proteinGoalFromWeight } from '@/lib
 import type { Sex, ActivityLevel, FitnessGoal, Language } from '@/lib/types';
 import type { TranslationKey } from '@/lib/i18n/en';
 
-type Step = 1 | 2 | 3;
+type Step = 1 | 2 | 3 | 4;
 
 const ACTIVITY_OPTIONS: { value: ActivityLevel; emoji: string; label: TranslationKey; desc: TranslationKey }[] = [
   { value: 'sedentary',   emoji: '🪑', label: 'ob_activity_sedentary',   desc: 'ob_activity_sedentary_desc' },
@@ -102,7 +102,8 @@ export default function OnboardingPage() {
     });
 
     await refreshProfile();
-    router.push('/dashboard');
+    setLoading(false);
+    setStep(4);
   }
 
   const stepLabels: TranslationKey[] = ['ob_step1', 'ob_step2', 'ob_step3'];
@@ -120,8 +121,8 @@ export default function OnboardingPage() {
           <span className="text-lg font-bold text-white">FitTrack</span>
         </div>
 
-        {/* Step indicator */}
-        <div className="flex items-center gap-2 mb-6 justify-center">
+        {/* Step indicator — only shown for steps 1-3 */}
+        {step < 4 && <div className="flex items-center gap-2 mb-6 justify-center">
           {stepLabels.map((labelKey, i) => {
             const n = (i + 1) as Step;
             const done = step > n;
@@ -142,7 +143,7 @@ export default function OnboardingPage() {
               </React.Fragment>
             );
           })}
-        </div>
+        </div>}
 
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-7">
           {error && (
@@ -256,6 +257,47 @@ export default function OnboardingPage() {
             </div>
           )}
 
+          {/* STEP 4 — Pro upsell */}
+          {step === 4 && (
+            <div className="space-y-5 text-center">
+              <div>
+                <div className="text-4xl mb-3">🎉</div>
+                <h2 className="text-xl font-bold text-white">You&apos;re all set{name ? `, ${name.split(' ')[0]}` : ''}!</h2>
+                <p className="text-slate-400 text-sm mt-1">Your calorie goal is set to <span className="text-white font-semibold">{suggestedGoal?.toLocaleString() ?? 2000} kcal/day</span>.</p>
+              </div>
+
+              {/* Pro upsell card */}
+              <div className="bg-blue-600/10 border border-blue-500/25 rounded-2xl p-5 text-left space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">⚡</span>
+                  <span className="font-semibold text-white text-sm">Unlock Pro for unlimited AI</span>
+                  <span className="ml-auto text-xs text-blue-400 font-semibold">$5.99/mo</span>
+                </div>
+                <div className="space-y-2">
+                  {[
+                    { icon: '🍽️', text: 'Unlimited AI food & workout logging' },
+                    { icon: '🤖', text: 'Unlimited AI coach conversations' },
+                    { icon: '📅', text: 'Log any past day with AI' },
+                  ].map(f => (
+                    <div key={f.text} className="flex items-center gap-2.5 text-sm text-slate-300">
+                      <span className="w-4 text-center flex-shrink-0">{f.icon}</span>
+                      {f.text}
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-slate-500">Free plan: 10 AI actions/day · Resets at midnight</p>
+              </div>
+
+              <div className="space-y-2 pt-1">
+                <UpgradeButton />
+                <button onClick={() => router.push('/dashboard')}
+                  className="w-full text-slate-400 hover:text-white text-sm py-2 transition-colors">
+                  Start tracking for free →
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* STEP 3 */}
           {step === 3 && (
             <div className="space-y-4">
@@ -318,5 +360,28 @@ export default function OnboardingPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function UpgradeButton() {
+  const [loading, setLoading] = React.useState(false);
+  async function handleUpgrade() {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/stripe/checkout', { method: 'POST' });
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+    } catch {
+      setLoading(false);
+    }
+  }
+  return (
+    <button onClick={handleUpgrade} disabled={loading}
+      className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 text-sm">
+      {loading
+        ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Loading…</>
+        : '✦ Upgrade to Pro — $5.99/month'
+      }
+    </button>
   );
 }

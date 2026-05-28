@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { getTodayDate, generateId } from '@/lib/utils';
 import type { FoodEntry, WorkoutEntry, ChatMessage } from '@/lib/types';
 import AiUsageBadge, { notifyAiUsed } from '@/components/AiUsageBadge';
+import UpgradeModal from '@/components/UpgradeModal';
 
 export default function CoachPage() {
   const { user, profile, t } = useAuth();
@@ -18,6 +19,7 @@ export default function CoachPage() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState('');
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -62,7 +64,10 @@ export default function CoachPage() {
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
         if (d.limitReached) {
-          throw new Error(`Daily AI limit reached (${d.used}/${d.limit} used). Resets at midnight. Upgrade for unlimited.`);
+          setShowUpgradeModal(true);
+          setLoading(false);
+          inputRef.current?.focus();
+          return;
         }
         throw new Error(d.error ?? `Error ${res.status}`);
       }
@@ -84,6 +89,7 @@ export default function CoachPage() {
 
   return (
     <div className="flex flex-col" style={{ height: 'calc(100vh - 6rem)' }}>
+      {showUpgradeModal && <UpgradeModal onClose={() => setShowUpgradeModal(false)} />}
       {/* Header */}
       <div className="flex items-center justify-between pb-4 border-b border-slate-800 flex-shrink-0">
         <div>

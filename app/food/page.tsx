@@ -8,6 +8,7 @@ import type { FoodEntry, FoodIngredient, MealType } from '@/lib/types';
 import AiPromptInput from '@/components/AiPromptInput';
 import AiUsageBadge, { notifyAiUsed } from '@/components/AiUsageBadge';
 import BarcodeScanner from '@/components/BarcodeScanner';
+import UpgradeModal from '@/components/UpgradeModal';
 import MealBuilder from '@/components/MealBuilder';
 import { FoodSkeleton } from '@/components/Skeleton';
 import { invalidateCache } from '@/lib/cache';
@@ -55,6 +56,7 @@ export default function FoodPage() {
   const [aiConfidence, setAiConfidence] = useState<'high' | 'medium' | 'low' | null>(null);
   const [showScanner, setShowScanner] = useState(false);
   const [showMealBuilder, setShowMealBuilder] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [logDate, setLogDate] = useState(today);
 
   // Expand / edit state
@@ -116,6 +118,7 @@ export default function FoodPage() {
       });
       const data = await res.json();
       if (!res.ok || data.error) {
+        if (data.limitReached) { setShowUpgradeModal(true); setAiParsing(false); return; }
         setAiError(data.error ?? 'Could not estimate nutrition. Try being more specific.');
         setAiParsing(false);
         return;
@@ -308,6 +311,7 @@ export default function FoodPage() {
       {showMealBuilder && (
         <MealBuilder onLog={meal => handleLogFood({ ...meal, ingredients: meal.ingredients })} onClose={() => setShowMealBuilder(false)} />
       )}
+      {showUpgradeModal && <UpgradeModal onClose={() => setShowUpgradeModal(false)} />}
 
       {/* Edit modal */}
       {editingEntry && (

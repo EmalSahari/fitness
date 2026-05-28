@@ -112,11 +112,12 @@ function AccountPage() {
     setBillingLoading(true);
     try {
       const res = await fetch('/api/stripe/checkout', { method: 'POST' });
-      const data = await res.json();
-      if (data.url) window.location.href = data.url;
-      else setBillingMsg({ type: 'info', text: data.error ?? 'Something went wrong.' });
-    } catch {
-      setBillingMsg({ type: 'info', text: 'Could not start checkout. Try again.' });
+      let data: { url?: string; error?: string } = {};
+      try { data = await res.json(); } catch { /* non-JSON response */ }
+      if (data.url) { window.location.href = data.url; return; }
+      setBillingMsg({ type: 'info', text: data.error ?? `Server error ${res.status} — check console for details.` });
+    } catch (err) {
+      setBillingMsg({ type: 'info', text: err instanceof Error ? err.message : 'Network error — is the dev server running?' });
     }
     setBillingLoading(false);
   }

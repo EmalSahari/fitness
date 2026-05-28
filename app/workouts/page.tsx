@@ -9,6 +9,7 @@ import type { WorkoutEntry, WorkoutType } from '@/lib/types';
 import type { TranslationKey } from '@/lib/i18n/en';
 import AiPromptInput from '@/components/AiPromptInput';
 import AiUsageBadge, { notifyAiUsed } from '@/components/AiUsageBadge';
+import UpgradeModal from '@/components/UpgradeModal';
 import { invalidateCache } from '@/lib/cache';
 
 const WORKOUT_TYPES: { value: WorkoutType; icon: string; labelKey: TranslationKey }[] = [
@@ -45,6 +46,7 @@ export default function WorkoutsPage() {
   const [saving, setSaving] = useState(false);
 
   const [logDate, setLogDate] = useState(today);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   // AI quick-log state
   const [aiInput, setAiInput] = useState('');
@@ -71,6 +73,7 @@ export default function WorkoutsPage() {
       });
       const data = await res.json();
       if (!res.ok || data.error) {
+        if (data.limitReached) { setShowUpgradeModal(true); setAiParsing(false); return; }
         setAiError(data.error ?? 'Could not estimate workout. Try being more specific.');
         setAiParsing(false);
         return;
@@ -122,6 +125,7 @@ export default function WorkoutsPage() {
 
   return (
     <div className="space-y-5">
+      {showUpgradeModal && <UpgradeModal onClose={() => setShowUpgradeModal(false)} />}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">{t('wkt_title')}</h1>

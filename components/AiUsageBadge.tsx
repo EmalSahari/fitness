@@ -63,6 +63,19 @@ export default function AiUsageBadge({ onUpgrade }: { onUpgrade?: () => void }) 
     );
   }
 
+  if (usage.used === 0) {
+    return (
+      <span className="text-[10px] text-slate-500">
+        ✨ 10 free AI actions/day ·{' '}
+        {onUpgrade ? (
+          <button onClick={onUpgrade} className="text-blue-400 hover:text-blue-300 transition-colors">Upgrade for unlimited</button>
+        ) : (
+          <Link href="/account" className="text-blue-400 hover:text-blue-300 transition-colors">Upgrade for unlimited</Link>
+        )}
+      </span>
+    );
+  }
+
   return (
     <div className="flex items-center gap-2">
       <div className="flex items-center gap-1.5 flex-1">

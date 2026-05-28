@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { getTodayDate } from '@/lib/utils';
 import { invalidateCache } from '@/lib/cache';
 import { notifyAiUsed } from '@/components/AiUsageBadge';
+import UpgradeModal from '@/components/UpgradeModal';
 import type { MealType, WorkoutType } from '@/lib/types';
 
 type ParsedFood = { name: string; calories: number; meal_type: MealType; protein: number | null; carbs: number | null; fat: number | null };
@@ -22,6 +23,7 @@ export default function LogPastDayModal({ userId, onClose, onSaved }: { userId: 
   const [description, setDescription] = useState('');
   const [parsing, setParsing] = useState(false);
   const [parseError, setParseError] = useState('');
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [food, setFood] = useState<ParsedFood[]>([]);
   const [workouts, setWorkouts] = useState<ParsedWorkout[]>([]);
   const [parsed, setParsed] = useState(false);
@@ -40,7 +42,10 @@ export default function LogPastDayModal({ userId, onClose, onSaved }: { userId: 
         body: JSON.stringify({ description }),
       });
       const data = await res.json();
-      if (!res.ok || data.error) { setParseError(data.error ?? 'Could not parse.'); setParsing(false); return; }
+      if (!res.ok || data.error) {
+        if (data.limitReached) { setShowUpgradeModal(true); setParsing(false); return; }
+        setParseError(data.error ?? 'Could not parse.'); setParsing(false); return;
+      }
       setFood(data.food ?? []);
       setWorkouts(data.workouts ?? []);
       setParsed(true);
@@ -89,6 +94,8 @@ export default function LogPastDayModal({ userId, onClose, onSaved }: { userId: 
   const WORKOUT_TYPES: WorkoutType[] = ['cardio', 'strength', 'hiit', 'yoga', 'sports', 'other'];
 
   return (
+    <>
+    {showUpgradeModal && <UpgradeModal onClose={() => setShowUpgradeModal(false)} />}
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 pb-20 sm:pb-4">
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
       <div className="relative w-full max-w-lg bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl flex flex-col max-h-[88vh]">
@@ -247,5 +254,6 @@ export default function LogPastDayModal({ userId, onClose, onSaved }: { userId: 
         )}
       </div>
     </div>
+    </>
   );
 }
