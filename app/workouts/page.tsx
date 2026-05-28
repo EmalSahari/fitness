@@ -8,6 +8,7 @@ import { getTodayDate, getLast7Days } from '@/lib/utils';
 import type { WorkoutEntry, WorkoutType } from '@/lib/types';
 import type { TranslationKey } from '@/lib/i18n/en';
 import AiPromptInput from '@/components/AiPromptInput';
+import AiUsageBadge from '@/components/AiUsageBadge';
 import { invalidateCache } from '@/lib/cache';
 
 const WORKOUT_TYPES: { value: WorkoutType; icon: string; labelKey: TranslationKey }[] = [
@@ -161,7 +162,7 @@ export default function WorkoutsPage() {
       </div>
 
       {/* AI Quick Log */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-3">
         <AiPromptInput
           value={aiInput}
           onChange={setAiInput}
@@ -172,7 +173,8 @@ export default function WorkoutsPage() {
           placeholder={t('ai_placeholder_workout')}
           hint={t('ai_hint')}
         />
-        {aiError && <p className="text-red-400 text-xs mt-2">{aiError}</p>}
+        {aiError && <p className="text-red-400 text-xs">{aiError}</p>}
+        <AiUsageBadge />
       </div>
 
       {showForm && (

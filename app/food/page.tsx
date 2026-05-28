@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { getTodayDate } from '@/lib/utils';
 import type { FoodEntry, FoodIngredient, MealType } from '@/lib/types';
 import AiPromptInput from '@/components/AiPromptInput';
+import AiUsageBadge from '@/components/AiUsageBadge';
 import BarcodeScanner from '@/components/BarcodeScanner';
 import MealBuilder from '@/components/MealBuilder';
 import { FoodSkeleton } from '@/components/Skeleton';
@@ -477,7 +478,7 @@ export default function FoodPage() {
       </div>
 
       {/* AI Quick Log */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-3">
         <AiPromptInput
           value={aiInput}
           onChange={setAiInput}
@@ -488,7 +489,8 @@ export default function FoodPage() {
           placeholder={t('ai_placeholder_food')}
           hint={t('ai_hint')}
         />
-        {aiError && <p className="text-red-400 text-xs mt-2">{aiError}</p>}
+        {aiError && <p className="text-red-400 text-xs">{aiError}</p>}
+        <AiUsageBadge />
       </div>
 
       {/* Recent foods quick-pick */}

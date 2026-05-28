@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { createClient } from '@/lib/supabase/server';
+import { incrementAndCheckUsage } from '@/lib/ai-usage';
 
 const MAX_INPUT = 800;
 
@@ -15,6 +16,14 @@ export async function POST(req: NextRequest) {
 
   if (!process.env.OPENAI_API_KEY) {
     return NextResponse.json({ error: 'OpenAI API key not configured.' }, { status: 500 });
+  }
+
+  const usage = await incrementAndCheckUsage(user.id);
+  if (!usage.allowed) {
+    return NextResponse.json(
+      { error: 'Daily AI limit reached', limitReached: true, used: usage.used, limit: usage.limit },
+      { status: 429 }
+    );
   }
 
   const { description } = await req.json();

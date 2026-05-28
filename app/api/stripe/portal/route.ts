@@ -1,0 +1,38 @@
+import { NextRequest, NextResponse } from 'next/server';
+import Stripe from 'stripe';
+import { createClient } from '@/lib/supabase/server';
+
+function getStripe() {
+  return new Stripe(process.env.STRIPE_SECRET_KEY ?? '', { apiVersion: '2026-05-27.dahlia' });
+}
+
+export async function POST(req: NextRequest) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  if (!process.env.STRIPE_SECRET_KEY) {
+    return NextResponse.json({ error: 'Stripe not configured' }, { status: 503 });
+  }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('stripe_customer_id')
+    .eq('id', user.id)
+    .single();
+
+  const customerId = (profile as { stripe_customer_id?: string } | null)?.stripe_customer_id;
+  if (!customerId) {
+    return NextResponse.json({ error: 'No billing account found' }, { status: 404 });
+  }
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? req.headers.get('origin') ?? 'http://localhost:3000';
+  const stripe = getStripe();
+
+  const session = await stripe.billingPortal.sessions.create({
+    customer: customerId,
+    return_url: `${appUrl}/account`,
+  });
+
+  return NextResponse.json({ url: session.url });
+}

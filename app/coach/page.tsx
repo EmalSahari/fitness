@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/auth-context';
 import { createClient } from '@/lib/supabase/client';
 import { getTodayDate, generateId } from '@/lib/utils';
 import type { FoodEntry, WorkoutEntry, ChatMessage } from '@/lib/types';
+import AiUsageBadge from '@/components/AiUsageBadge';
 
 export default function CoachPage() {
   const { user, profile, t } = useAuth();
@@ -60,6 +61,9 @@ export default function CoachPage() {
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
+        if (d.limitReached) {
+          throw new Error(`Daily AI limit reached (${d.used}/${d.limit} used). Resets at midnight. Upgrade for unlimited.`);
+        }
         throw new Error(d.error ?? `Error ${res.status}`);
       }
       const { reply } = await res.json();
@@ -162,7 +166,10 @@ export default function CoachPage() {
             </svg>
           </button>
         </div>
-        <p className="text-xs text-slate-600 mt-2">{t('coach_enter_hint')}</p>
+        <div className="mt-2 flex items-center justify-between">
+          <p className="text-xs text-slate-600">{t('coach_enter_hint')}</p>
+          <AiUsageBadge />
+        </div>
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/auth-context';
 import { calculateTDEE, calorieGoalFromGoal, proteinGoalFromWeight } from '@/lib/utils';
@@ -27,7 +27,13 @@ const GOAL_OPTIONS: { value: FitnessGoal; emoji: string; label: TranslationKey; 
 export default function AccountPage() {
   const { user, profile, t, refreshProfile, language, setLanguage, signOut } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
+
+  // Billing state
+  const [isPro, setIsPro] = useState(false);
+  const [billingLoading, setBillingLoading] = useState(false);
+  const [billingMsg, setBillingMsg] = useState<{ type: 'success' | 'info'; text: string } | null>(null);
 
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
@@ -43,6 +49,23 @@ export default function AccountPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
+
+  // Load pro status + handle post-checkout redirects
+  useEffect(() => {
+    if (!user) return;
+    supabase.from('profiles').select('is_pro').eq('id', user.id).single()
+      .then(({ data }) => { setIsPro((data as { is_pro?: boolean } | null)?.is_pro ?? false); });
+
+    const upgraded = searchParams.get('upgraded');
+    const canceled = searchParams.get('canceled');
+    if (upgraded === '1') {
+      setBillingMsg({ type: 'success', text: '🎉 Welcome to Pro! Your account has been upgraded.' });
+      router.replace('/account');
+    } else if (canceled === '1') {
+      setBillingMsg({ type: 'info', text: 'Upgrade canceled — you can upgrade anytime.' });
+      router.replace('/account');
+    }
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!user) return;
@@ -75,6 +98,32 @@ export default function AccountPage() {
     const tdee = calculateTDEE(parseFloat(weightKg), parseFloat(heightCm), parseInt(age), sex, activityLevel);
     setCalorieGoal(String(calorieGoalFromGoal(tdee, goal)));
     setProteinGoal(String(proteinGoalFromWeight(parseFloat(weightKg), goal)));
+  }
+
+  async function handleUpgrade() {
+    setBillingLoading(true);
+    try {
+      const res = await fetch('/api/stripe/checkout', { method: 'POST' });
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+      else setBillingMsg({ type: 'info', text: data.error ?? 'Something went wrong.' });
+    } catch {
+      setBillingMsg({ type: 'info', text: 'Could not start checkout. Try again.' });
+    }
+    setBillingLoading(false);
+  }
+
+  async function handleManageBilling() {
+    setBillingLoading(true);
+    try {
+      const res = await fetch('/api/stripe/portal', { method: 'POST' });
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+      else setBillingMsg({ type: 'info', text: data.error ?? 'Something went wrong.' });
+    } catch {
+      setBillingMsg({ type: 'info', text: 'Could not open billing portal. Try again.' });
+    }
+    setBillingLoading(false);
   }
 
   async function handleSave() {
@@ -281,6 +330,75 @@ export default function AccountPage() {
           </>
         ) : t('acc_save')}
       </button>
+
+      {/* Billing / Plan */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-semibold text-white">Plan</h2>
+            <p className="text-xs text-slate-400 mt-0.5">
+              {isPro ? 'Unlimited AI features included' : `Free plan — 10 AI actions per day`}
+            </p>
+          </div>
+          <span className={`text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wide ${isPro ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' : 'bg-slate-800 text-slate-400 border border-slate-700'}`}>
+            {isPro ? '✦ Pro' : 'Free'}
+          </span>
+        </div>
+
+        {billingMsg && (
+          <div className={`text-sm px-3 py-2.5 rounded-lg ${billingMsg.type === 'success' ? 'bg-green-500/10 border border-green-500/20 text-green-400' : 'bg-slate-800 border border-slate-700 text-slate-300'}`}>
+            {billingMsg.text}
+          </div>
+        )}
+
+        {isPro ? (
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              {['AI food parsing', 'AI workout logging', 'AI coach chat', 'Log past day AI', 'Barcode scanner', 'Progress photos'].map(f => (
+                <div key={f} className="flex items-center gap-1.5 text-slate-300">
+                  <svg className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  {f}
+                </div>
+              ))}
+            </div>
+            <button onClick={handleManageBilling} disabled={billingLoading}
+              className="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-sm font-medium py-2.5 rounded-xl transition-colors">
+              {billingLoading ? 'Loading…' : 'Manage billing & cancel'}
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              {[
+                { label: 'AI food & workout parsing', pro: true },
+                { label: 'AI coach chat', pro: true },
+                { label: 'Log past day with AI', pro: true },
+                { label: 'Barcode scanner', pro: false },
+                { label: '10 AI actions/day limit', pro: false },
+                { label: 'Unlimited AI actions', pro: true },
+              ].map(f => (
+                <div key={f.label} className={`flex items-center gap-1.5 ${f.pro ? 'text-slate-400' : 'text-slate-500'}`}>
+                  {f.pro
+                    ? <span className="w-3.5 h-3.5 text-blue-400 flex-shrink-0 text-[10px] font-bold">Pro</span>
+                    : <svg className="w-3.5 h-3.5 text-slate-600 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                  }
+                  {f.label}
+                </div>
+              ))}
+            </div>
+            <button onClick={handleUpgrade} disabled={billingLoading}
+              className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-500 text-white font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2">
+              {billingLoading
+                ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Loading…</>
+                : '✦ Upgrade to Pro — $5.99/month'
+              }
+            </button>
+            <p className="text-xs text-slate-600 text-center">Cancel anytime. Resets at midnight UTC daily.</p>
+          </div>
+        )}
+      </div>
 
       {/* Push notifications */}
       <NotificationToggle t={t} />

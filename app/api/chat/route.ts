@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { FoodEntry, WorkoutEntry } from '@/lib/types';
 import { createClient } from '@/lib/supabase/server';
+import { incrementAndCheckUsage } from '@/lib/ai-usage';
 
 const MAX_MESSAGE_LENGTH = 1000;
 const MAX_MESSAGES_IN_HISTORY = 20;
@@ -137,6 +138,14 @@ export async function POST(req: NextRequest) {
 
   if (!process.env.OPENAI_API_KEY) {
     return NextResponse.json({ error: 'OpenAI API key is not configured.' }, { status: 500 });
+  }
+
+  const usage = await incrementAndCheckUsage(user.id);
+  if (!usage.allowed) {
+    return NextResponse.json(
+      { error: 'Daily AI limit reached', limitReached: true, used: usage.used, limit: usage.limit },
+      { status: 429 }
+    );
   }
 
   const body = await req.json();
