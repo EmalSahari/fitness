@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/auth-context';
@@ -24,7 +24,15 @@ const GOAL_OPTIONS: { value: FitnessGoal; emoji: string; label: TranslationKey; 
   { value: 'custom',       emoji: '✏️', label: 'ob_goal_custom',        desc: 'ob_goal_custom_desc' },
 ];
 
-export default function AccountPage() {
+export default function AccountPageWrapper() {
+  return (
+    <Suspense>
+      <AccountPage />
+    </Suspense>
+  );
+}
+
+function AccountPage() {
   const { user, profile, t, refreshProfile, language, setLanguage, signOut } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
