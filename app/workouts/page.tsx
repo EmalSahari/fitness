@@ -8,7 +8,7 @@ import { getTodayDate, getLast7Days } from '@/lib/utils';
 import type { WorkoutEntry, WorkoutType } from '@/lib/types';
 import type { TranslationKey } from '@/lib/i18n/en';
 import AiPromptInput from '@/components/AiPromptInput';
-import AiUsageBadge from '@/components/AiUsageBadge';
+import AiUsageBadge, { notifyAiUsed } from '@/components/AiUsageBadge';
 import { invalidateCache } from '@/lib/cache';
 
 const WORKOUT_TYPES: { value: WorkoutType; icon: string; labelKey: TranslationKey }[] = [
@@ -83,6 +83,7 @@ export default function WorkoutsPage() {
       });
       setAiInput('');
       setShowForm(true);
+      notifyAiUsed();
     } catch {
       setAiError('Something went wrong. Please try again.');
     }

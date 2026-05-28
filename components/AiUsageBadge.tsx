@@ -1,19 +1,33 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 
 type UsageData = { used: number; limit: number; isPro: boolean };
 
+/** Dispatch this event after any successful AI call to refresh all badges on the page. */
+export function notifyAiUsed() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('ai-usage-changed'));
+  }
+}
+
 export default function AiUsageBadge({ onUpgrade }: { onUpgrade?: () => void }) {
   const [usage, setUsage] = useState<UsageData | null>(null);
 
-  useEffect(() => {
+  const fetchUsage = useCallback(() => {
     fetch('/api/ai-usage')
       .then(r => r.json())
       .then(d => { if (!d.error) setUsage(d); })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    fetchUsage();
+    // Re-fetch whenever an AI call completes anywhere on the page
+    window.addEventListener('ai-usage-changed', fetchUsage);
+    return () => window.removeEventListener('ai-usage-changed', fetchUsage);
+  }, [fetchUsage]);
 
   if (!usage) return null;
 
@@ -75,12 +89,4 @@ export default function AiUsageBadge({ onUpgrade }: { onUpgrade?: () => void }) 
       )}
     </div>
   );
-}
-
-/** Call this from any component after a 429 response to refresh the badge */
-export function refreshAiUsage(setUsage: (u: UsageData) => void) {
-  fetch('/api/ai-usage')
-    .then(r => r.json())
-    .then(d => { if (!d.error) setUsage(d); })
-    .catch(() => {});
 }

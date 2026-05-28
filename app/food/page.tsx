@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { getTodayDate } from '@/lib/utils';
 import type { FoodEntry, FoodIngredient, MealType } from '@/lib/types';
 import AiPromptInput from '@/components/AiPromptInput';
-import AiUsageBadge from '@/components/AiUsageBadge';
+import AiUsageBadge, { notifyAiUsed } from '@/components/AiUsageBadge';
 import BarcodeScanner from '@/components/BarcodeScanner';
 import MealBuilder from '@/components/MealBuilder';
 import { FoodSkeleton } from '@/components/Skeleton';
@@ -131,6 +131,7 @@ export default function FoodPage() {
       setAiConfidence(data.confidence ?? null);
       setAiInput('');
       setShowForm(true);
+      notifyAiUsed();
     } catch {
       setAiError('Something went wrong. Please try again.');
     }

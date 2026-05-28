@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/auth-context';
 import { createClient } from '@/lib/supabase/client';
 import { getTodayDate, generateId } from '@/lib/utils';
 import type { FoodEntry, WorkoutEntry, ChatMessage } from '@/lib/types';
-import AiUsageBadge from '@/components/AiUsageBadge';
+import AiUsageBadge, { notifyAiUsed } from '@/components/AiUsageBadge';
 
 export default function CoachPage() {
   const { user, profile, t } = useAuth();
@@ -68,6 +68,7 @@ export default function CoachPage() {
       }
       const { reply } = await res.json();
       setMessages(prev => [...prev, { id: generateId(), role: 'assistant', content: reply, createdAt: Date.now() }]);
+      notifyAiUsed();
     } catch (err) {
       setApiError(err instanceof Error ? err.message : 'Something went wrong.');
     } finally {

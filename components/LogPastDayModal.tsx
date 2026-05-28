@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { getTodayDate } from '@/lib/utils';
 import { invalidateCache } from '@/lib/cache';
+import { notifyAiUsed } from '@/components/AiUsageBadge';
 import type { MealType, WorkoutType } from '@/lib/types';
 
 type ParsedFood = { name: string; calories: number; meal_type: MealType; protein: number | null; carbs: number | null; fat: number | null };
@@ -43,6 +44,7 @@ export default function LogPastDayModal({ userId, onClose, onSaved }: { userId: 
       setFood(data.food ?? []);
       setWorkouts(data.workouts ?? []);
       setParsed(true);
+      notifyAiUsed();
     } catch {
       setParseError('Something went wrong.');
     }
