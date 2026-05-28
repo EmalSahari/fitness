@@ -378,23 +378,32 @@ function AccountPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              {[
-                { label: 'AI food & workout parsing', pro: true },
-                { label: 'AI coach chat', pro: true },
-                { label: 'Log past day with AI', pro: true },
-                { label: 'Barcode scanner', pro: false },
-                { label: '10 AI actions/day limit', pro: false },
-                { label: 'Unlimited AI actions', pro: true },
-              ].map(f => (
-                <div key={f.label} className={`flex items-center gap-1.5 ${f.pro ? 'text-slate-400' : 'text-slate-500'}`}>
-                  {f.pro
-                    ? <span className="w-3.5 h-3.5 text-blue-400 flex-shrink-0 text-[10px] font-bold">Pro</span>
-                    : <svg className="w-3.5 h-3.5 text-slate-600 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                  }
-                  {f.label}
-                </div>
-              ))}
+            {/* Free vs Pro comparison */}
+            <div className="grid grid-cols-2 gap-2">
+              {/* Free column */}
+              <div className="bg-slate-800/50 rounded-xl p-3 space-y-2">
+                <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">You have (Free)</p>
+                {['Barcode scanner', 'Manual logging', '10 AI actions/day'].map(f => (
+                  <div key={f} className="flex items-center gap-1.5 text-xs text-slate-400">
+                    <svg className="w-3 h-3 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    {f}
+                  </div>
+                ))}
+              </div>
+              {/* Pro column */}
+              <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 space-y-2">
+                <p className="text-[10px] font-semibold text-blue-400 uppercase tracking-wider">Pro unlocks</p>
+                {['Unlimited AI actions', 'AI food & workout parsing', 'AI coach chat', 'Log past day with AI'].map(f => (
+                  <div key={f} className="flex items-center gap-1.5 text-xs text-slate-300">
+                    <svg className="w-3 h-3 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    {f}
+                  </div>
+                ))}
+              </div>
             </div>
             <button onClick={handleUpgrade} disabled={billingLoading}
               className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-500 text-white font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2">
@@ -403,7 +412,7 @@ function AccountPage() {
                 : '✦ Upgrade to Pro — $5.99/month'
               }
             </button>
-            <p className="text-xs text-slate-600 text-center">Cancel anytime. Resets at midnight UTC daily.</p>
+            <p className="text-xs text-slate-600 text-center">Cancel anytime. Free plan AI limit resets daily at midnight.</p>
           </div>
         )}
       </div>
