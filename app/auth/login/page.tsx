@@ -52,14 +52,14 @@ function LoginForm() {
     <AuthBackground>
       <div className="w-full max-w-sm">
         {/* Logo */}
-        <div className="flex items-center gap-2.5 justify-center mb-8">
-          <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center">
+        <Link href="/" className="flex items-center gap-2.5 justify-center mb-8 group">
+          <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center group-hover:bg-blue-500 transition-colors">
             <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M3.293 9.707a1 1 0 010-1.414l6-6a1 1 0 011.414 0l6 6a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L4.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
             </svg>
           </div>
-          <Sparkles><span className="text-xl font-bold text-white">FitTrack</span></Sparkles>
-        </div>
+          <Sparkles><span className="text-xl font-bold text-white group-hover:text-blue-300 transition-colors">FitTrack</span></Sparkles>
+        </Link>
 
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-7">
           <h1 className="text-xl font-bold text-white mb-1">Welcome back</h1>
@@ -127,6 +127,15 @@ function LoginForm() {
               Sign up
             </Link>
           </p>
+        </div>
+
+        <div className="mt-5 text-center">
+          <Link href="/" className="inline-flex items-center gap-1.5 text-xs text-slate-600 hover:text-slate-400 transition-colors">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to homepage
+          </Link>
         </div>
       </div>
     </AuthBackground>
