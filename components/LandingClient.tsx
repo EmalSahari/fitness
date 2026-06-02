@@ -224,7 +224,13 @@ export default function LandingClient() {
               <p className="text-4xl font-black text-white">$0</p>
               <p className="text-xs text-slate-600 mb-7 mt-1">Forever</p>
               <ul className="space-y-3 mb-8">
-                {['10 AI actions per day', 'Barcode food scanner', 'Water & streak tracking', 'Saved meals & weekly summary', 'Progress charts & weight'].map(f => (
+                {[
+                  'AI food logging, workouts & coach (10/day)',
+                  'Barcode food scanner',
+                  'Water & streak tracking',
+                  'Saved meals & weekly summary',
+                  'Progress charts & weight',
+                ].map(f => (
                   <li key={f} className="flex items-start gap-2.5 text-sm text-slate-400">
                     <svg className="w-4 h-4 text-slate-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                     {f}
@@ -242,7 +248,7 @@ export default function LandingClient() {
               </div>
               <p className="text-xs text-slate-600 mb-7 mt-1">Cancel anytime</p>
               <ul className="space-y-3 mb-8">
-                {['Unlimited AI actions', 'AI food & workout parsing', 'AI personal coach', 'Photo-based AI food logging', 'Log any past day with AI', 'Everything in Free'].map(f => (
+                {['Unlimited AI actions (food, workouts & coach)', 'Photo-based AI food logging', 'Log any past day with AI', 'Everything in Free'].map(f => (
                   <li key={f} className="flex items-start gap-2.5 text-sm text-slate-300">
                     <svg className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                     {f}
