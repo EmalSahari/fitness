@@ -61,8 +61,8 @@ function AccountPage() {
   // Load pro status + handle post-checkout redirects
   useEffect(() => {
     if (!user) return;
-    supabase.from('profiles').select('is_pro').eq('id', user.id).single()
-      .then(({ data }) => { setIsPro((data as { is_pro?: boolean } | null)?.is_pro ?? false); });
+    supabase.from('profiles').select('plan').eq('id', user.id).single()
+      .then(({ data }) => { setIsPro((data as { plan?: string } | null)?.plan === 'pro'); });
 
     const upgraded = searchParams.get('upgraded');
     const canceled = searchParams.get('canceled');
