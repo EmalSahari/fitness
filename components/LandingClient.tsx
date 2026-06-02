@@ -83,7 +83,7 @@ export default function LandingClient() {
             <p className="text-xs text-slate-600">No credit card. 10 free AI actions/day included.</p>
 
             <div className="flex items-center gap-6 pt-2 flex-wrap">
-              {[['🍽️', 'AI food logging'], ['🤖', 'Personal AI coach'], ['📊', 'Progress tracking']].map(([icon, label]) => (
+              {[['🍽️', 'AI food logging'], ['📸', 'Photo logging'], ['💧', 'Water tracking'], ['🔥', 'Streak tracker']].map(([icon, label]) => (
                 <div key={label} className="flex items-center gap-1.5 text-xs text-slate-500">
                   <span>{icon}</span><span>{label}</span>
                 </div>
@@ -188,14 +188,20 @@ export default function LandingClient() {
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {[
-              { icon: '🍽️', title: 'AI Food Logging', desc: 'Say "pasta with chicken" and AI logs calories and macros instantly. Barcode scanner for packaged foods.' },
-              { icon: '🏋️', title: 'AI Workout Tracking', desc: '"30 min run" → logged with duration, type, and estimated calories burned. No templates.' },
-              { icon: '🤖', title: 'Personal AI Coach', desc: "Chat with a coach that knows today's food, your workouts, and your calorie goal." },
-              { icon: '📅', title: 'Log Any Past Day', desc: 'Forgot to track yesterday? Describe the whole day and AI fills it in correctly.' },
-              { icon: '📊', title: 'Progress & Trends', desc: 'Calorie history, macro breakdowns, workout frequency, weight tracking — all in one place.' },
-              { icon: '🔔', title: 'Smart Reminders', desc: 'Daily push notifications to keep you on track. Never forget to log a meal.' },
+              { icon: '🍽️', title: 'AI Food Logging', desc: 'Say "pasta with chicken" and AI logs calories and macros instantly. Barcode scanner for packaged foods.', badge: null },
+              { icon: '📸', title: 'Photo Logging', desc: 'Take a photo of your meal and AI identifies the food and estimates nutrition automatically.', badge: 'Pro' },
+              { icon: '🤖', title: 'Personal AI Coach', desc: "Chat with a coach that knows today's food, your workouts, and your calorie goal.", badge: null },
+              { icon: '💧', title: 'Water Tracking', desc: 'Hit your daily hydration goal with quick-add buttons. Tracks glasses and litres throughout the day.', badge: null },
+              { icon: '⭐', title: 'Saved Meals', desc: 'Star your go-to meals for one-tap re-logging. No typing the same chicken and rice every day.', badge: null },
+              { icon: '📊', title: 'Weekly Summary', desc: '7-day dot grid, avg calories, protein, and workouts — see your week at a glance on the dashboard.', badge: null },
+              { icon: '🏋️', title: 'AI Workout Tracking', desc: '"30 min run" → logged with duration, type, and estimated calories burned. No templates.', badge: null },
+              { icon: '🔥', title: 'Streak & Milestones', desc: 'Build a logging streak and unlock milestone badges. Next level at 7, 14, and 30 days.', badge: null },
+              { icon: '🔔', title: 'Smart Reminders', desc: 'Daily push notifications to keep you on track. Morning nudge + evening calorie check-in.', badge: null },
             ].map(f => (
-              <div key={f.title} className="bg-slate-900 border border-slate-800 rounded-2xl p-6 hover:border-slate-700 transition-colors">
+              <div key={f.title} className="bg-slate-900 border border-slate-800 rounded-2xl p-6 hover:border-slate-700 transition-colors relative">
+                {f.badge && (
+                  <span className="absolute top-4 right-4 bg-violet-600/30 text-violet-300 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">{f.badge}</span>
+                )}
                 <div className="text-3xl mb-4">{f.icon}</div>
                 <h3 className="font-bold text-white mb-2">{f.title}</h3>
                 <p className="text-sm text-slate-500 leading-relaxed">{f.desc}</p>
@@ -218,7 +224,7 @@ export default function LandingClient() {
               <p className="text-4xl font-black text-white">$0</p>
               <p className="text-xs text-slate-600 mb-7 mt-1">Forever</p>
               <ul className="space-y-3 mb-8">
-                {['10 AI actions per day', 'Barcode food scanner', 'Manual logging', 'Progress charts & weight'].map(f => (
+                {['10 AI actions per day', 'Barcode food scanner', 'Water & streak tracking', 'Saved meals & weekly summary', 'Progress charts & weight'].map(f => (
                   <li key={f} className="flex items-start gap-2.5 text-sm text-slate-400">
                     <svg className="w-4 h-4 text-slate-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                     {f}
@@ -236,7 +242,7 @@ export default function LandingClient() {
               </div>
               <p className="text-xs text-slate-600 mb-7 mt-1">Cancel anytime</p>
               <ul className="space-y-3 mb-8">
-                {['Unlimited AI actions', 'AI food & workout parsing', 'AI personal coach', 'Log any past day with AI', 'Everything in Free'].map(f => (
+                {['Unlimited AI actions', 'AI food & workout parsing', 'AI personal coach', 'Photo-based AI food logging', 'Log any past day with AI', 'Everything in Free'].map(f => (
                   <li key={f} className="flex items-start gap-2.5 text-sm text-slate-300">
                     <svg className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                     {f}
