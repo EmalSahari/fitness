@@ -7,6 +7,7 @@ import RegisterSW from '@/components/RegisterSW';
 import FeedbackButton from '@/components/FeedbackButton';
 import InstallPrompt from '@/components/InstallPrompt';
 import InAppBrowserWarning from '@/components/InAppBrowserWarning';
+import { Analytics } from '@vercel/analytics/next';
 
 function appUrl() {
   const raw = process.env.NEXT_PUBLIC_APP_URL ?? 'https://fittrack.sahari.io';
@@ -71,6 +72,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <InstallPrompt />
           </div>
         </AuthProvider>
+        <Analytics />
       </body>
     </html>
   );
