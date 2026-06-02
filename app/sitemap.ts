@@ -8,14 +8,20 @@ export default function sitemap(): MetadataRoute.Sitemap {
     {
       url: APP_URL,
       lastModified: new Date(),
-      changeFrequency: 'monthly',
+      changeFrequency: 'weekly',
       priority: 1,
     },
     {
       url: `${APP_URL}/auth/login`,
       lastModified: new Date(),
       changeFrequency: 'yearly',
-      priority: 0.5,
+      priority: 0.6,
+    },
+    {
+      url: `${APP_URL}/auth/signup`,
+      lastModified: new Date(),
+      changeFrequency: 'yearly',
+      priority: 0.8,
     },
   ];
 }

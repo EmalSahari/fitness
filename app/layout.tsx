@@ -15,9 +15,14 @@ function appUrl() {
 
 export const metadata: Metadata = {
   metadataBase: new URL(appUrl()),
-  title: { default: 'FitTrack — AI Fitness Tracker', template: '%s · FitTrack' },
-  description: 'Track food and workouts with AI. Log meals by description, get a personal AI coach, and hit your fitness goals.',
-  keywords: ['calorie tracker', 'AI food logging', 'workout tracker', 'macro tracker', 'fitness app', 'AI fitness coach'],
+  title: { default: 'FitTrack — AI Calorie & Fitness Tracker', template: '%s · FitTrack' },
+  description: 'Log food and workouts with AI. Describe your meal and AI calculates calories and macros instantly. Water tracking, streak counter, weekly summary, and a personal AI coach. Free to start.',
+  keywords: [
+    'calorie tracker', 'AI food logging', 'workout tracker', 'macro tracker',
+    'fitness app', 'AI fitness coach', 'nutrition tracker', 'calorie counter',
+    'water intake tracker', 'meal logger', 'food diary', 'weight loss app',
+    'photo food logging', 'AI calorie counter', 'streak tracker', 'fitness tracker',
+  ],
   authors: [{ name: 'FitTrack' }],
   creator: 'FitTrack',
   robots: { index: true, follow: true },
@@ -25,6 +30,7 @@ export const metadata: Metadata = {
     icon: '/icons/icon-192.png',
     apple: '/icons/icon-192.png',
   },
+  manifest: '/manifest.json',
   openGraph: {
     type: 'website',
     siteName: 'FitTrack',
