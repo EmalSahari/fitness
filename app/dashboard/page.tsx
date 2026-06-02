@@ -12,6 +12,7 @@ import { DashboardSkeleton } from '@/components/Skeleton';
 import type { TranslationKey } from '@/lib/i18n/en';
 import { getCached, setCached, invalidateCache } from '@/lib/cache';
 import LogPastDayModal from '@/components/LogPastDayModal';
+import WeeklySummary from '@/components/WeeklySummary';
 
 const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
 
@@ -121,6 +122,7 @@ export default function DashboardPage() {
   const last7 = getLast7Days();
 
   const [foodEntries, setFoodEntries] = useState<FoodEntry[]>([]);
+  const [weekFoodEntries, setWeekFoodEntries] = useState<FoodEntry[]>([]);
   const [workoutEntries, setWorkoutEntries] = useState<WorkoutEntry[]>([]);
   const [latestWeight, setLatestWeight] = useState<WeightEntry | null>(null);
   const [allFoodDates, setAllFoodDates] = useState<string[]>([]);
@@ -141,10 +143,11 @@ export default function DashboardPage() {
     if (!user) { setDataLoading(false); return; }
     async function load() {
       const cacheKey = `dash_${user!.id}_${today}`;
-      type DashCache = { food: FoodEntry[]; workouts: WorkoutEntry[]; weight: WeightEntry | null; dates: string[]; workoutCount: number; goal: string | null };
+      type DashCache = { food: FoodEntry[]; weekFood: FoodEntry[]; workouts: WorkoutEntry[]; weight: WeightEntry | null; dates: string[]; workoutCount: number; goal: string | null };
       const cached = getCached<DashCache>(cacheKey);
       if (cached) {
         setFoodEntries(cached.food);
+        setWeekFoodEntries(cached.weekFood ?? []);
         setWorkoutEntries(cached.workouts);
         setLatestWeight(cached.weight);
         setAllFoodDates(cached.dates);
@@ -153,8 +156,9 @@ export default function DashboardPage() {
         setDataLoading(false);
         return;
       }
-      const [foodRes, workoutRes, weightRes, allDatesRes, totalWorkoutsRes, statsRes] = await Promise.all([
+      const [foodRes, weekFoodRes, workoutRes, weightRes, allDatesRes, totalWorkoutsRes, statsRes] = await Promise.all([
         supabase.from('food_entries').select('*').eq('user_id', user!.id).eq('date', today).order('created_at', { ascending: false }),
+        supabase.from('food_entries').select('*').eq('user_id', user!.id).in('date', last7).order('created_at', { ascending: false }),
         supabase.from('workout_entries').select('*').eq('user_id', user!.id).in('date', last7).order('created_at', { ascending: false }),
         supabase.from('weight_entries').select('*').eq('user_id', user!.id).order('date', { ascending: false }).limit(1),
         supabase.from('food_entries').select('date').eq('user_id', user!.id),
@@ -162,13 +166,15 @@ export default function DashboardPage() {
         supabase.from('user_stats').select('goal').eq('user_id', user!.id).maybeSingle(),
       ]);
       const food = (foodRes.data ?? []) as FoodEntry[];
+      const weekFood = (weekFoodRes.data ?? []) as FoodEntry[];
       const workouts = (workoutRes.data ?? []) as WorkoutEntry[];
       const weight = ((weightRes.data ?? [])[0] ?? null) as WeightEntry | null;
       const dates = ((allDatesRes.data ?? []) as { date: string }[]).map(r => r.date);
       const workoutCount = totalWorkoutsRes.count ?? 0;
       const goal = (statsRes.data as { goal?: string } | null)?.goal ?? null;
-      setCached(cacheKey, { food, workouts, weight, dates, workoutCount, goal });
+      setCached(cacheKey, { food, weekFood, workouts, weight, dates, workoutCount, goal });
       setFoodEntries(food);
+      setWeekFoodEntries(weekFood);
       setWorkoutEntries(workouts);
       setLatestWeight(weight);
       setAllFoodDates(dates);
@@ -229,12 +235,19 @@ export default function DashboardPage() {
         </div>
         <div className="flex items-center gap-2">
           {streak > 0 && (
-            <div className="flex items-center gap-1.5 bg-orange-500/10 border border-orange-500/20 rounded-lg px-3 py-2">
-              <span className="text-lg leading-none">🔥</span>
-              <div className="text-right">
-                <p className="text-sm font-bold text-orange-400 leading-none">{streak}</p>
+            <div className="flex items-center gap-1.5 bg-orange-500/10 border border-orange-500/20 rounded-lg px-3 py-2 group" title={`${streak} day streak — keep it going!`}>
+              <span className="text-xl leading-none">{streak >= 30 ? '🔥' : streak >= 14 ? '🔥' : '🔥'}</span>
+              <div>
+                <p className="text-base font-bold text-orange-400 leading-none tabular-nums">{streak}</p>
                 <p className="text-xs text-orange-400/70 leading-none mt-0.5">{t('streak_label')}</p>
               </div>
+              {streak >= 3 && (
+                <div className="ml-1 pl-2 border-l border-orange-500/20 hidden sm:block">
+                  <p className="text-xs text-orange-300/60">
+                    {streak < 7 ? `${7 - streak}d to 🏅` : streak < 14 ? `${14 - streak}d to 🥈` : streak < 30 ? `${30 - streak}d to 🥇` : '🏆 Legend'}
+                  </p>
+                </div>
+              )}
             </div>
           )}
           <button
@@ -343,6 +356,9 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1">
         <StatCard value={weeklyWorkoutCount} unit="" label={t('dash_workouts_7d')} color="text-green-400" bg="bg-green-500/10" glowColor="#22c55e" />
       </div>
+
+      {/* Weekly summary */}
+      <WeeklySummary allFood={weekFoodEntries} workouts={workoutEntries} calorieGoal={goal} />
 
       {/* Macros bar */}
       {macroTotal > 0 && (

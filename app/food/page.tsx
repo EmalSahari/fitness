@@ -10,6 +10,7 @@ import AiUsageBadge, { notifyAiUsed } from '@/components/AiUsageBadge';
 import BarcodeScanner from '@/components/BarcodeScanner';
 import UpgradeModal from '@/components/UpgradeModal';
 import MealBuilder from '@/components/MealBuilder';
+import WaterTracker from '@/components/WaterTracker';
 import { FoodSkeleton } from '@/components/Skeleton';
 import { invalidateCache } from '@/lib/cache';
 
@@ -59,6 +60,20 @@ export default function FoodPage() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [logDate, setLogDate] = useState(today);
 
+  // Saved meals state
+  type SavedMeal = { id: string; name: string; calories: number; meal_type: MealType; protein: number | null; carbs: number | null; fat: number | null };
+  const [savedMeals, setSavedMeals] = useState<SavedMeal[]>([]);
+  const [savingMeal, setSavingMeal] = useState<string | null>(null); // entry id being saved
+
+  // Photo logging state
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoParsing, setPhotoParsing] = useState(false);
+  const [photoError, setPhotoError] = useState('');
+
+  // Quick-log state (one-click log from saved/recent without opening form)
+  const [quickLogging, setQuickLogging] = useState<string | null>(null);
+
   // Expand / edit state
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editingEntry, setEditingEntry] = useState<FoodEntry | null>(null);
@@ -78,7 +93,8 @@ export default function FoodPage() {
         .order('created_at', { ascending: false }),
       supabase.from('food_entries').select('*').eq('user_id', user.id).neq('date', today)
         .order('created_at', { ascending: false }).limit(60),
-    ]).then(([todayRes, recentRes]) => {
+      fetch('/api/food/saved').then(r => r.json()).catch(() => []),
+    ]).then(([todayRes, recentRes, savedRes]) => {
       setEntries((todayRes.data ?? []) as FoodEntry[]);
       const seen = new Set<string>();
       const deduped: FoodEntry[] = [];
@@ -88,6 +104,7 @@ export default function FoodPage() {
         if (deduped.length >= 12) break;
       }
       setRecentFoods(deduped);
+      setSavedMeals(Array.isArray(savedRes) ? savedRes : []);
       setLoading(false);
     });
   }, [user, authLoading]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -104,6 +121,78 @@ export default function FoodPage() {
     setShowForm(true);
     setAiInput('');
     setAiError('');
+  }
+
+  async function quickLogFood(food: { name: string; calories: number; meal_type: MealType; protein?: number | null; carbs?: number | null; fat?: number | null }, key: string) {
+    setQuickLogging(key);
+    await handleLogFood({ name: food.name, calories: food.calories, mealType: food.meal_type, protein: food.protein ?? null, carbs: food.carbs ?? null, fat: food.fat ?? null });
+    setQuickLogging(null);
+  }
+
+  async function saveToFavorites(food: FoodEntry) {
+    setSavingMeal(food.id);
+    const res = await fetch('/api/food/saved', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: food.name, calories: food.calories, meal_type: food.meal_type, protein: food.protein ?? null, carbs: food.carbs ?? null, fat: food.fat ?? null }),
+    });
+    if (res.ok) {
+      const saved = await res.json();
+      setSavedMeals(prev => [saved, ...prev]);
+    }
+    setSavingMeal(null);
+  }
+
+  async function deleteSavedMeal(id: string) {
+    setSavedMeals(prev => prev.filter(m => m.id !== id));
+    await fetch('/api/food/saved', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    });
+  }
+
+  function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
+    setPhotoError('');
+  }
+
+  async function handlePhotoLog() {
+    if (!photoFile) return;
+    setPhotoParsing(true);
+    setPhotoError('');
+    try {
+      const fd = new FormData();
+      fd.append('image', photoFile);
+      const res = await fetch('/api/food/parse-photo', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        if (data.proRequired) { setShowUpgradeModal(true); setPhotoParsing(false); return; }
+        if (data.limitReached) { setShowUpgradeModal(true); setPhotoParsing(false); return; }
+        setPhotoError(data.error ?? 'Could not analyze photo.');
+        setPhotoParsing(false);
+        return;
+      }
+      setForm({
+        name: data.name ?? 'Photo meal',
+        calories: String(data.calories ?? ''),
+        mealType: (data.meal_type as MealType) ?? 'lunch',
+        protein: data.protein != null ? String(data.protein) : '',
+        carbs: data.carbs != null ? String(data.carbs) : '',
+        fat: data.fat != null ? String(data.fat) : '',
+      });
+      setAiConfidence(data.confidence ?? null);
+      setShowForm(true);
+      setPhotoFile(null);
+      setPhotoPreview(null);
+      notifyAiUsed();
+    } catch {
+      setPhotoError('Something went wrong. Please try again.');
+    }
+    setPhotoParsing(false);
   }
 
   async function handleAiParse() {
@@ -495,21 +584,119 @@ export default function FoodPage() {
           hint={t('ai_hint')}
         />
         {aiError && <p className="text-red-400 text-xs">{aiError}</p>}
+
+        {/* Photo log — Pro feature */}
+        <div className="border-t border-slate-800 pt-3">
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white text-xs font-medium px-3 py-2 rounded-lg transition-colors cursor-pointer">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Log from photo
+              <span className="ml-1 bg-violet-600/30 text-violet-300 text-[10px] px-1.5 py-0.5 rounded font-semibold">PRO</span>
+              <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoSelect} />
+            </label>
+            {photoPreview && (
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <img src={photoPreview} alt="Food preview" className="w-8 h-8 rounded object-cover border border-slate-700" />
+                <button
+                  onClick={handlePhotoLog}
+                  disabled={photoParsing}
+                  className="flex-1 bg-violet-600 hover:bg-violet-500 disabled:bg-violet-800 text-white text-xs font-medium px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5 justify-center"
+                >
+                  {photoParsing
+                    ? <><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Analyzing…</>
+                    : 'Analyze'}
+                </button>
+                <button onClick={() => { setPhotoFile(null); setPhotoPreview(null); setPhotoError(''); }}
+                  className="text-slate-600 hover:text-slate-400 transition-colors">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            )}
+          </div>
+          {photoError && <p className="text-red-400 text-xs mt-2">{photoError}</p>}
+        </div>
+
         <AiUsageBadge />
       </div>
+
+      {/* Water tracker */}
+      <WaterTracker date={logDate} />
+
+      {/* Saved meals */}
+      {savedMeals.length > 0 && !showForm && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-0.5">⭐ Saved meals</p>
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide sm:flex-wrap">
+            {savedMeals.map(meal => (
+              <div key={meal.id} className="flex-shrink-0 flex flex-col bg-slate-900 border border-amber-500/20 hover:border-amber-500/40 rounded-xl overflow-hidden transition-all group">
+                <button
+                  onClick={() => quickLogFood(meal, meal.id)}
+                  disabled={quickLogging === meal.id}
+                  className="flex-1 flex flex-col items-start px-3.5 pt-2.5 pb-2 text-left"
+                >
+                  {quickLogging === meal.id
+                    ? <div className="w-3 h-3 border-2 border-amber-400/30 border-t-amber-400 rounded-full animate-spin mb-1" />
+                    : <span className="text-sm font-medium text-white group-hover:text-amber-300 transition-colors max-w-[120px] truncate">{meal.name}</span>
+                  }
+                  <span className="text-xs text-slate-500 mt-0.5">{meal.calories} kcal{meal.protein ? ` · ${meal.protein}g P` : ''}</span>
+                </button>
+                <button
+                  onClick={() => deleteSavedMeal(meal.id)}
+                  className="px-3 pb-2 text-slate-700 hover:text-red-400 transition-colors text-xs self-end"
+                  title="Remove from saved"
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Recent foods quick-pick */}
       {recentFoods.length > 0 && !showForm && (
         <div className="space-y-2">
           <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-0.5">{t('food_recent')}</p>
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide sm:flex-wrap">
-            {recentFoods.map(food => (
-              <button key={food.id} onClick={() => pickRecent(food)}
-                className="flex-shrink-0 flex flex-col items-start bg-slate-900 border border-slate-800 hover:border-blue-500/40 rounded-xl px-3.5 py-2.5 text-left transition-all group">
-                <span className="text-sm font-medium text-white group-hover:text-blue-300 transition-colors max-w-[120px] truncate">{food.name}</span>
-                <span className="text-xs text-slate-500 mt-0.5">{food.calories} kcal{food.protein ? ` · ${food.protein}g protein` : ''}</span>
-              </button>
-            ))}
+            {recentFoods.map(food => {
+              const alreadySaved = savedMeals.some(m => m.name.toLowerCase() === food.name.toLowerCase());
+              return (
+                <div key={food.id} className="flex-shrink-0 flex flex-col bg-slate-900 border border-slate-800 hover:border-blue-500/40 rounded-xl overflow-hidden transition-all group">
+                  <button onClick={() => pickRecent(food)} className="flex-1 flex flex-col items-start px-3.5 pt-2.5 pb-1 text-left">
+                    <span className="text-sm font-medium text-white group-hover:text-blue-300 transition-colors max-w-[120px] truncate">{food.name}</span>
+                    <span className="text-xs text-slate-500 mt-0.5">{food.calories} kcal{food.protein ? ` · ${food.protein}g P` : ''}</span>
+                  </button>
+                  <div className="flex items-center gap-1 px-3 pb-2">
+                    <button
+                      onClick={() => quickLogFood(food, `r${food.id}`)}
+                      disabled={quickLogging === `r${food.id}`}
+                      className="text-[10px] text-blue-500 hover:text-blue-300 transition-colors font-medium"
+                      title="Log now"
+                    >
+                      {quickLogging === `r${food.id}` ? '…' : '+ Log'}
+                    </button>
+                    {!alreadySaved && (
+                      <button
+                        onClick={() => saveToFavorites(food)}
+                        disabled={savingMeal === food.id}
+                        className="text-[10px] text-slate-600 hover:text-amber-400 transition-colors ml-1.5"
+                        title="Save to favorites"
+                      >
+                        {savingMeal === food.id ? '…' : '⭐'}
+                      </button>
+                    )}
+                    {alreadySaved && <span className="text-[10px] text-amber-400/50 ml-1.5">⭐</span>}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
