@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import LandingClient from '@/components/LandingClient';
 
 const raw = process.env.NEXT_PUBLIC_APP_URL ?? 'https://fittrack.sahari.io';
@@ -21,16 +22,57 @@ export const metadata: Metadata = {
     title: 'FitTrack — AI Calorie & Workout Tracker',
     description:
       'Describe your meal and AI logs the calories and macros. Get a personal AI fitness coach. Free forever.',
-    images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'FitTrack — AI Fitness Tracker' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'FitTrack — AI Calorie & Workout Tracker',
     description: 'Describe your meal and AI logs calories and macros instantly. Personal AI fitness coach included.',
-    images: ['/og-image.png'],
   },
 };
 
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'FitTrack',
+  applicationCategory: 'HealthApplication',
+  operatingSystem: 'Web, iOS, Android',
+  description:
+    'AI-powered calorie and workout tracker. Log meals by description, track macros, and chat with a personal AI fitness coach.',
+  url: APP_URL,
+  offers: [
+    {
+      '@type': 'Offer',
+      price: '0',
+      priceCurrency: 'USD',
+      name: 'Free plan — 10 AI actions/day',
+    },
+    {
+      '@type': 'Offer',
+      price: '5.99',
+      priceCurrency: 'USD',
+      billingIncrement: 'P1M',
+      name: 'Pro plan — Unlimited AI',
+    },
+  ],
+  featureList: [
+    'AI food logging by description',
+    'AI workout tracking',
+    'Personal AI fitness coach',
+    'Macro and calorie tracking',
+    'Progress charts',
+    'Barcode scanner',
+  ],
+};
+
 export default function LandingPage() {
-  return <LandingClient />;
+  return (
+    <>
+      <Script
+        id="json-ld"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <LandingClient />
+    </>
+  );
 }

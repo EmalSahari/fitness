@@ -28,11 +28,9 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     siteName: 'FitTrack',
-    images: [{ url: '/og-image.png', width: 1200, height: 630 }],
   },
   twitter: {
     card: 'summary_large_image',
-    images: ['/og-image.png'],
   },
   appleWebApp: {
     capable: true,

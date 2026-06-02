@@ -25,16 +25,16 @@ export default function OgImage() {
         <div style={{
           position: 'absolute', top: -200, right: -100,
           width: 700, height: 700, borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(163,230,53,0.12) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(37,99,235,0.18) 0%, transparent 70%)',
         }} />
 
         {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 48 }}>
           <div style={{
             width: 48, height: 48, borderRadius: 12,
-            background: '#a3e635', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <svg width="28" height="28" viewBox="0 0 20 20" fill="black">
+            <svg width="28" height="28" viewBox="0 0 20 20" fill="white">
               <path fillRule="evenodd" d="M3.293 9.707a1 1 0 010-1.414l6-6a1 1 0 011.414 0l6 6a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L4.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
             </svg>
           </div>
@@ -44,7 +44,7 @@ export default function OgImage() {
         {/* Headline */}
         <div style={{ color: 'white', fontSize: 64, fontWeight: 800, lineHeight: 1.1, marginBottom: 24 }}>
           Hit your goals.<br />
-          <span style={{ color: '#a3e635' }}>Eat smarter.</span>
+          <span style={{ color: '#2563eb' }}>Eat smarter.</span>
         </div>
 
         {/* Sub */}
@@ -57,7 +57,7 @@ export default function OgImage() {
           marginTop: 48, display: 'flex', alignItems: 'center', gap: 16,
         }}>
           <div style={{
-            background: '#a3e635', color: 'black', fontWeight: 800,
+            background: '#2563eb', color: 'black', fontWeight: 800,
             fontSize: 22, padding: '14px 32px', borderRadius: 16,
           }}>
             Free to start
