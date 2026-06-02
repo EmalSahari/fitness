@@ -32,9 +32,10 @@ export async function middleware(request: NextRequest) {
   const isAuthRoute = path.startsWith('/auth');
   const isOnboarding = path === '/onboarding';
   const isApiRoute = path.startsWith('/api');
+  const isPublic = path === '/';
 
-  // Unauthenticated → redirect to login (except auth routes and APIs)
-  if (!user && !isAuthRoute && !isApiRoute) {
+  // Unauthenticated → redirect to login (except public pages, auth routes, and APIs)
+  if (!user && !isAuthRoute && !isApiRoute && !isPublic) {
     return NextResponse.redirect(new URL('/auth/login', request.url));
   }
 
