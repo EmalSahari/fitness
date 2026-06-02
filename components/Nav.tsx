@@ -73,7 +73,7 @@ export default function Nav() {
   const { user, profile, language, setLanguage, signOut, t } = useAuth();
 
   // Don't render nav on auth / onboarding pages
-  if (!user || pathname.startsWith('/auth') || pathname === '/onboarding') return null;
+  if (!user || pathname.startsWith('/auth') || pathname === '/onboarding' || pathname === '/') return null;
 
   const otherLang = language === 'en' ? 'da' : 'en';
 

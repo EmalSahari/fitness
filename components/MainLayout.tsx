@@ -6,8 +6,9 @@ import AppBackground from '@/components/AppBackground';
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isAuthPage = pathname.startsWith('/auth') || pathname === '/onboarding';
+  const isLanding = pathname === '/';
 
-  if (isAuthPage) {
+  if (isAuthPage || isLanding) {
     return <main className="flex-1 min-h-screen">{children}</main>;
   }
 
