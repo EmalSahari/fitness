@@ -26,13 +26,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No billing account found' }, { status: 404 });
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? req.headers.get('origin') ?? 'http://localhost:3000';
+  const envUrl = process.env.NEXT_PUBLIC_APP_URL;
+  const appUrl = envUrl?.startsWith('http')
+    ? envUrl
+    : new URL(req.url).origin;
+
   const stripe = getStripe();
 
-  const session = await stripe.billingPortal.sessions.create({
-    customer: customerId,
-    return_url: `${appUrl}/account`,
-  });
-
-  return NextResponse.json({ url: session.url });
+  try {
+    const session = await stripe.billingPortal.sessions.create({
+      customer: customerId,
+      return_url: `${appUrl}/account`,
+    });
+    return NextResponse.json({ url: session.url });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[stripe/portal]', msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 }

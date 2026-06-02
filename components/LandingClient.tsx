@@ -122,7 +122,7 @@ export default function LandingClient() {
             </div>
 
             {/* AI meal card */}
-            <div className="absolute top-[230px] left-0 w-[256px] bg-slate-900 border border-slate-700/60 rounded-2xl p-4 shadow-2xl shadow-black/40">
+            <div className="absolute top-[250px] left-0 w-[256px] bg-slate-900 border border-slate-700/60 rounded-2xl p-4 shadow-2xl shadow-black/40">
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-6 h-6 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
                   <span className="text-xs">✨</span>
@@ -151,7 +151,7 @@ export default function LandingClient() {
             </div>
 
             {/* AI Coach bubble */}
-            <div className="absolute top-[130px] right-0 w-[220px] bg-blue-950/80 border border-blue-800/40 rounded-2xl rounded-tr-sm px-3.5 py-3 shadow-xl">
+            <div className="absolute top-[20px] left-[10px] w-[220px] bg-blue-950/80 border border-blue-800/40 rounded-2xl rounded-tl-sm px-3.5 py-3 shadow-xl">
               <div className="flex items-center gap-2 mb-1.5">
                 <div className="w-5 h-5 rounded-full bg-blue-500/30 flex items-center justify-center">
                   <svg className="w-3 h-3 text-blue-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">

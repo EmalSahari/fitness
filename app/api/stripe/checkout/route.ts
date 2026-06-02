@@ -16,8 +16,12 @@ export async function POST(req: NextRequest) {
   }
 
   const stripe = getStripe();
-  const rawUrl = process.env.NEXT_PUBLIC_APP_URL ?? req.headers.get('origin') ?? 'http://localhost:3000';
-  const appUrl = rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`;
+  // Derive the base URL: prefer the explicit env var, fall back to the
+  // incoming request's own origin (always correct, always HTTPS in production).
+  const envUrl = process.env.NEXT_PUBLIC_APP_URL;
+  const appUrl = envUrl?.startsWith('http')
+    ? envUrl
+    : new URL(req.url).origin;
 
   // Reuse existing customer if available
   const { data: profile } = await supabase
