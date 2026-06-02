@@ -9,11 +9,25 @@ import InstallPrompt from '@/components/InstallPrompt';
 import InAppBrowserWarning from '@/components/InAppBrowserWarning';
 
 export const metadata: Metadata = {
-  title: 'FitTrack',
-  description: 'Track nutrition and workouts with an AI coach',
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'https://fittrack.app'),
+  title: { default: 'FitTrack — AI Fitness Tracker', template: '%s · FitTrack' },
+  description: 'Track food and workouts with AI. Log meals by description, get a personal AI coach, and hit your fitness goals.',
+  keywords: ['calorie tracker', 'AI food logging', 'workout tracker', 'macro tracker', 'fitness app', 'AI fitness coach'],
+  authors: [{ name: 'FitTrack' }],
+  creator: 'FitTrack',
+  robots: { index: true, follow: true },
   icons: {
     icon: '/icons/icon-192.png',
     apple: '/icons/icon-192.png',
+  },
+  openGraph: {
+    type: 'website',
+    siteName: 'FitTrack',
+    images: [{ url: '/og-image.png', width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    images: ['/og-image.png'],
   },
   appleWebApp: {
     capable: true,
