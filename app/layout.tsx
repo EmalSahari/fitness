@@ -8,8 +8,13 @@ import FeedbackButton from '@/components/FeedbackButton';
 import InstallPrompt from '@/components/InstallPrompt';
 import InAppBrowserWarning from '@/components/InAppBrowserWarning';
 
+function appUrl() {
+  const raw = process.env.NEXT_PUBLIC_APP_URL ?? 'https://fittrack.sahari.io';
+  return raw.startsWith('http') ? raw : `https://${raw}`;
+}
+
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'https://fittrack.app'),
+  metadataBase: new URL(appUrl()),
   title: { default: 'FitTrack — AI Fitness Tracker', template: '%s · FitTrack' },
   description: 'Track food and workouts with AI. Log meals by description, get a personal AI coach, and hit your fitness goals.',
   keywords: ['calorie tracker', 'AI food logging', 'workout tracker', 'macro tracker', 'fitness app', 'AI fitness coach'],

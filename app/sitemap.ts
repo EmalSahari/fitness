@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next';
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://fittrack.app';
+const raw = process.env.NEXT_PUBLIC_APP_URL ?? 'https://fittrack.sahari.io';
+const APP_URL = raw.startsWith('http') ? raw : `https://${raw}`;
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return [

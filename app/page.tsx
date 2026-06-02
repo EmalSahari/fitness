@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import LandingClient from '@/components/LandingClient';
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://fittrack.app';
+const raw = process.env.NEXT_PUBLIC_APP_URL ?? 'https://fittrack.sahari.io';
+const APP_URL = raw.startsWith('http') ? raw : `https://${raw}`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),
