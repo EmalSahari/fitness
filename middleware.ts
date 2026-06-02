@@ -32,7 +32,7 @@ export async function middleware(request: NextRequest) {
   const isAuthRoute = path.startsWith('/auth');
   const isOnboarding = path === '/onboarding';
   const isApiRoute = path.startsWith('/api');
-  const isPublic = path === '/';
+  const isPublic = path === '/' || path === '/opengraph-image' || path === '/sitemap.xml' || path === '/robots.txt';
 
   // Unauthenticated → redirect to login (except public pages, auth routes, and APIs)
   if (!user && !isAuthRoute && !isApiRoute && !isPublic) {
