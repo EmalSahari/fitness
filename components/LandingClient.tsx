@@ -268,6 +268,11 @@ export default function LandingClient() {
               <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M3.293 9.707a1 1 0 010-1.414l6-6a1 1 0 011.414 0l6 6a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L4.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
             </div>
             <span>FitTrack © 2026</span>
+            <span className="text-slate-800">·</span>
+            <a href="https://www.sahari.io" target="_blank" rel="noopener noreferrer"
+              className="hover:text-slate-400 transition-colors underline underline-offset-2">
+              Made by sahari.io
+            </a>
           </div>
           <div className="flex items-center gap-6">
             <Link href="/auth/login" className="hover:text-slate-400 transition-colors">Log in</Link>

@@ -16,7 +16,8 @@ export async function POST(req: NextRequest) {
   }
 
   const stripe = getStripe();
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? req.headers.get('origin') ?? 'http://localhost:3000';
+  const rawUrl = process.env.NEXT_PUBLIC_APP_URL ?? req.headers.get('origin') ?? 'http://localhost:3000';
+  const appUrl = rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`;
 
   // Reuse existing customer if available
   const { data: profile } = await supabase
