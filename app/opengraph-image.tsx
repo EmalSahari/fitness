@@ -14,74 +14,86 @@ export default function OgImage() {
           width: '100%',
           height: '100%',
           display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          padding: '80px',
+          flexDirection: 'row',
           fontFamily: 'sans-serif',
         }}
       >
-        {/* Blue accent bar on left */}
+        {/* Left accent bar */}
+        <div style={{ width: 8, background: '#2563eb', display: 'flex', flexShrink: 0 }} />
+
+        {/* Main content */}
         <div style={{
-          position: 'absolute',
-          left: 0, top: 0, bottom: 0,
-          width: 8,
-          background: '#2563eb',
           display: 'flex',
-        }} />
-
-        {/* Logo row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 52 }}>
-          <div style={{
-            width: 56, height: 56, borderRadius: 14,
-            background: '#2563eb',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <svg width="32" height="32" viewBox="0 0 20 20" fill="white">
-              <path fillRule="evenodd" d="M3.293 9.707a1 1 0 010-1.414l6-6a1 1 0 011.414 0l6 6a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L4.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <span style={{ color: '#94a3b8', fontSize: 26, fontWeight: 600, letterSpacing: 1 }}>FitTrack</span>
-        </div>
-
-        {/* Headline line 1 */}
-        <div style={{ color: '#f1f5f9', fontSize: 72, fontWeight: 800, lineHeight: 1.05, display: 'flex' }}>
-          Track food.
-        </div>
-        {/* Headline line 2 */}
-        <div style={{ color: '#2563eb', fontSize: 72, fontWeight: 800, lineHeight: 1.05, marginBottom: 32, display: 'flex' }}>
-          Train smarter.
-        </div>
-
-        {/* Subtext */}
-        <div style={{ color: '#64748b', fontSize: 26, maxWidth: 700, display: 'flex' }}>
-          AI logs your meals and workouts from plain text. Personal AI coach included.
-        </div>
-
-        {/* Pills */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 48 }}>
-          <div style={{
-            background: '#2563eb', color: 'white', fontWeight: 700,
-            fontSize: 20, padding: '12px 28px', borderRadius: 12,
-            display: 'flex',
-          }}>
-            Free to start
-          </div>
-          <div style={{
-            border: '1.5px solid #1e3a5f', color: '#64748b',
-            fontSize: 20, padding: '12px 28px', borderRadius: 12,
-            display: 'flex',
-          }}>
-            10 AI actions/day included
-          </div>
-        </div>
-
-        {/* URL */}
-        <div style={{
-          position: 'absolute', bottom: 48, right: 80,
-          color: '#1e3a5f', fontSize: 18,
-          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          padding: '72px 80px',
+          flex: 1,
         }}>
-          fittrack.sahari.io
+          {/* Logo */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 48 }}>
+            <div style={{
+              width: 52,
+              height: 52,
+              borderRadius: 12,
+              background: '#2563eb',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              fontSize: 30,
+              fontWeight: 900,
+            }}>
+              F
+            </div>
+            <span style={{ color: '#94a3b8', fontSize: 28, fontWeight: 600, display: 'flex' }}>
+              FitTrack
+            </span>
+          </div>
+
+          {/* Headline */}
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span style={{ color: '#f1f5f9', fontSize: 74, fontWeight: 800, lineHeight: 1.08, display: 'flex' }}>
+              Track food.
+            </span>
+            <span style={{ color: '#2563eb', fontSize: 74, fontWeight: 800, lineHeight: 1.08, display: 'flex', marginBottom: 28 }}>
+              Train smarter.
+            </span>
+          </div>
+
+          {/* Subtext */}
+          <div style={{ color: '#475569', fontSize: 26, display: 'flex', marginBottom: 44 }}>
+            AI logs your meals and workouts from plain text.
+          </div>
+
+          {/* Pills */}
+          <div style={{ display: 'flex', gap: 16 }}>
+            <div style={{
+              background: '#2563eb',
+              color: 'white',
+              fontWeight: 700,
+              fontSize: 22,
+              padding: '12px 28px',
+              borderRadius: 12,
+              display: 'flex',
+            }}>
+              Free to start
+            </div>
+            <div style={{
+              background: '#0f172a',
+              color: '#475569',
+              fontSize: 22,
+              padding: '12px 28px',
+              borderRadius: 12,
+              display: 'flex',
+            }}>
+              10 AI actions / day
+            </div>
+          </div>
+
+          {/* URL */}
+          <div style={{ display: 'flex', marginTop: 'auto', paddingTop: 40, color: '#1e3a5f', fontSize: 20 }}>
+            fittrack.sahari.io
+          </div>
         </div>
       </div>
     ),
