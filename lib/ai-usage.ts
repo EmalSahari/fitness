@@ -15,11 +15,11 @@ export async function getAiUsage(userId: string): Promise<Omit<UsageResult, 'all
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('is_pro')
+    .select('plan')
     .eq('id', userId)
     .single();
 
-  const isPro = (profile as { is_pro?: boolean } | null)?.is_pro ?? false;
+  const isPro = (profile as { plan?: string } | null)?.plan === 'pro';
   if (isPro) return { used: 0, limit: -1, isPro: true };
 
   const today = new Date().toISOString().split('T')[0];
@@ -44,11 +44,11 @@ export async function incrementAndCheckUsage(userId: string): Promise<UsageResul
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('is_pro')
+    .select('plan')
     .eq('id', userId)
     .single();
 
-  const isPro = (profile as { is_pro?: boolean } | null)?.is_pro ?? false;
+  const isPro = (profile as { plan?: string } | null)?.plan === 'pro';
   if (isPro) return { allowed: true, used: 0, limit: -1, isPro: true };
 
   const today = new Date().toISOString().split('T')[0];
