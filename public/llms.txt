@@ -1,0 +1,56 @@
+# FitTrack — AI Calorie & Fitness Tracker
+
+> AI-powered calorie, nutrition, and fitness tracker. Log meals by text description or photo, track macros, monitor water intake, build daily streaks, and chat with a personal AI fitness coach.
+
+## What FitTrack does
+
+FitTrack lets users describe a meal in plain text (e.g. "chicken breast with rice and broccoli") and instantly receive calories, protein, carbs, and fat — no barcodes or manual entry required. The same AI pipeline handles workout logging: users describe their exercise session and the app records it.
+
+Photo-based food logging (Pro plan) lets users photograph a meal and receive nutrition estimates via AI vision.
+
+A built-in AI coach answers questions about nutrition, training, weight loss, and health goals in a chat interface.
+
+## Core features
+
+- **AI food logging** — describe any meal, AI returns macros and calories
+- **AI workout logging** — describe any session, AI parses exercises, sets, reps
+- **Photo food logging** — photograph a meal (Pro), AI estimates nutrition
+- **AI fitness coach** — personal chat coach for nutrition and training questions
+- **Water intake tracking** — daily goal (2500 ml), quick-add buttons, undo
+- **Saved meals & favorites** — one-tap re-logging of frequent meals
+- **Daily streak counter** — milestones at 7, 30, 60, and 100 days
+- **Weekly summary** — 7-day dot grid, avg calories/protein, workouts logged
+- **Progress charts** — calorie trends, macro breakdown, weight log
+- **Barcode scanner** — scan packaged foods for instant nutrition data
+- **Log any past day** — backfill missed days using AI
+
+## Plans
+
+| Plan | Price | Limits |
+|------|-------|--------|
+| Free | $0 | 10 AI actions per day (food logging, workout logging, coach messages) |
+| Pro  | $5.99/month | Unlimited AI actions + photo-based food logging |
+
+## Pages
+
+- `/` — Landing page with feature overview and pricing
+- `/auth/login` — Sign in
+- `/auth/signup` — Create account
+- `/dashboard` — Daily summary: calories, macros, water, streak, weekly card
+- `/food` — Food log: AI logging, photo logging, saved meals, water tracker
+- `/workouts` — Workout log: AI exercise parsing, history
+- `/coach` — AI fitness coach chat
+- `/progress` — Charts: calorie trend, macro split, weight log
+- `/account` — Plan status, usage counter, settings
+
+## Technical details
+
+- Web app (Next.js), installable as PWA on iOS and Android
+- All AI features powered by GPT-4o (vision) and GPT-4o-mini (text)
+- Data stored per-user, requires account (email/password via Supabase Auth)
+- No third-party ad tracking
+
+## Contact
+
+- URL: https://fittrack.sahari.io
+- Support: sahari.channel@gmail.com
